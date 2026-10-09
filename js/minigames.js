@@ -832,7 +832,7 @@
       tick(dt) {
         const p = sc.prog(); r.setProg(p, 'Липкость убрана: ' + Math.round(p * 100) + '%'); lastSave += dt; if (lastSave > .8) { lastSave = 0; m.cells = sc.ser(); }
         if (!said && p > .5) { said = true; r.bark('fridge', 'prog'); }
-        if (!done && p >= .96) { done = true; sc.clearAll(); m.cells = sc.ser(); f.fridgeStage = 3; doneT = 0; r.good(); r.sfx('taskDone'); r.bark('fridge', 'scrub'); }
+        if (!done && p >= .88) { done = true; sc.clearAll(); m.cells = sc.ser(); f.fridgeStage = 3; doneT = 0; r.good(); r.sfx('taskDone'); r.bark('fridge', 'scrub'); }
         if (doneT >= 0) { doneT += dt; if (doneT > 1.0) { doneT = -1; r.go('close'); } }
       },
       draw(g, t) {

@@ -14,3 +14,10 @@ Run in headless Chromium (software rendering, no GPU) via tools/*.js.
 | Android/touch | implemented in ui.js, not tested on a device |
 
 Known issues / next steps: fix the fridge scrub-stage error, story call scheduling, UI test timeout; character animations only checked on idle/run/sit screenshots; sprite-sheet export (tools/bake_sheet.js) and docs/CHARACTER.md not written; Dan/landlord looks not reviewed visually.
+
+
+## Update: realistic hero + fixes
+* Hero now uses painted sprites from the user's reference renders (assets/char/hero_*.png, cut out by tools/process_sprites.py; 1.9 px/cm so the idle sprite is exactly 178 cm). Idle/pose-deformed standing sprite + 7-frame run cycle; facing left by mirroring. Dan/landlord still use the older procedural rig (style mismatch).
+* Fixed: tasks.js crashed on partial/foreign state (S.wash / S.bag undefined) - the repeated page error in the fridge test.
+* Fridge scrub now completes at 88% (was 96%) so a human never gets stuck on the last specks.
+* Remaining test noise: story scheduled-call timing in the harness, UI test dialog step clicking past the last line, mini test 'good food costs 4 s' uses wall-clock drift.

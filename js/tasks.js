@@ -158,7 +158,7 @@
   /* ----------------------------------------------------------------- progress */
   const frac = (a, n) => n > 0 ? clamp(a / n, 0, 1) : 1;
   function progress(S) {
-    S = S || BB.S; if (!S || !S.items) return { score: 0, parts: [], done: 0, total: 11 };
+    S = S || BB.S; if (!S || !S.items || !S.bag || !S.bin || !S.wash) return { score: 0, parts: [], done: 0, total: 11 };
     const f = S.f, c = S.count || { trash: 1, cloth: 1 };
     const gT = (S.bag.n + S.bin.n), garb = frac(gT, c.trash), cloth = frac(S.wash.n, c.cloth);
     let sSum = 0; for (const s of S.stains) sSum += 1 - clamp(s.p, 0, 1); const stain = S.stains.length ? sSum / S.stains.length : 1;
@@ -642,7 +642,7 @@
         s.wet = 0; S.f.wetSlips++; addTime(S, CFG.wetSlipCost, 'slip'); sfx('land'); act('stumble', 0.7); say('mop', { slip: 1, k: 'sl' }, 0, true);
       }
     }
-    if (S.wash.t > 0) { S.wash.t -= dt; if (S.wash.t <= 0) S.f.washerOn = 0; }
+    if (S.wash && S.wash.t > 0) { S.wash.t -= dt; if (S.wash.t <= 0) S.f.washerOn = 0; }
     syncHeld(S, dt); howlAudio(S); unstick(S);
     L.checkT -= dt; if (L.checkT <= 0) { L.checkT = 0.3; check(S); }
   }
