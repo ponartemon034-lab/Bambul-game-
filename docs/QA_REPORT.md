@@ -32,3 +32,6 @@ Known issues / next steps: fix the fridge scrub-stage error, story call scheduli
 
 ## Update: puppet animation for the realistic hero
 The idle sprite is cut at load time into head / torso base (arms inpainted) / two articulated arms (shoulder+elbow). All action states drive arm and head angles (phone, mop, vac, scrub, repair, reach, cheer, panic, shrug, wave, point, pickup...), held items follow the forward-kinematic hand position. Walk/run/jump use the painted run frames (scaled), sofa pose = torso/legs split. Checked on screenshots: cheer, phone, mop, panic, pickup, openFridge, scrubToilet, point, shock, wave. Not verified: smoothness of transitions in motion, lower-body animation for crouch actions (still a squash of the standing sprite).
+
+## Update: generated voice-over
+832 spoken lines (Bamboul 653, landlord 111, Dan 68) synthesized offline with Piper TTS (ru_RU denis/dmitri/ruslan, tools/collect_lines.js -> tools/gen_voice.py -> tools/finalize_voice.py), pitch/tempo-shifted per character, stored as 24 kbps mp3 in assets/voice (11 MB). js/voice.js plays the clip matching the displayed line, falls back to browser speech for lines without a clip (e.g. numbers that vary). Not listened to by a human here: only file existence, key matching and level metering were checked.
