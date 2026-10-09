@@ -42,3 +42,9 @@ The idle sprite is cut at load time into head / torso base (arms inpainted) / tw
 * tools/test_voice.js: 11/11 (all pool lines have clips, 18 laundry lines, router, queued barks play from clips without browser-TTS fallback, one clip at a time, no repeats, laundry events produce spoken lines, toggle off silent, unknown line falls back safely, no errors).
 * Regression run: qa_run PASS (software-render frame time only), test_tasks OK, test_story 40-41/43 (tutorial-toast check is timing-flaky: same code passes/fails across runs; the two call-schedule checks fail as before), test_mini 18/22 (same 4 scripted-scrub failures), dlg_selftest 2 pre-existing failures.
 * Not verified by ear: voices were never listened to; only durations, levels, file keys and playback calls were checked.
+
+## Update: graphics pass (realism)
+* Engine: bake-time realism pass for every sprite (top-light gradient, inner-edge ambient occlusion, soft top-edge highlight, key-light gradient), cast shadows of furniture on the back wall from the nearest lamp, volumetric light cones under ceiling lamps, light pools on the floor (stronger on glossy floors), bloom/glow (downsampled bright-pass blur), teal/orange colour grade, rim light on the hero.
+* Hero: the painted sprites got sharper textures + micro grain/clarity (assets/char, originals kept in assets/char/orig); look unchanged.
+* New auto-quality: if the frame rate stays low in 'auto' quality, bloom/shadows/reflections are switched off step by step (headless software rendering drops to 'low' within seconds).
+* Checked on screenshots in living room, kitchen, bath, workshop; frame time was only measured without a GPU (75-93 ms before auto-downgrade).

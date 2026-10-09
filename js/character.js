@@ -323,6 +323,20 @@
     g.restore();
     const hand = fk('B', A.aB, A.eB); return [(hand[0] - w / 2) * k, (hand[1] - h) * k];
   }
+
+  /* rim light: thin bright edge on the side facing the nearest lamp (baked once per sprite image) */
+  const RIMS = new WeakMap();
+  function rimOf(im, side) {
+    let r = RIMS.get(im); if (!r) { r = {}; RIMS.set(im, r); } if (r[side]) return r[side];
+    const W = im.width, H = im.height, c = BB.mk(W, H), g = c.getContext('2d'); g.drawImage(im, 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = '#ffe9c4'; g.fillRect(0, 0, W, H);
+    g.globalCompositeOperation = 'destination-out'; g.drawImage(im, -side * 2.2, 0); g.drawImage(im, -side * 1.1, side * 0);
+    const o = BB.mk(W, H), og = o.getContext('2d'); if ('filter' in og) og.filter = 'blur(.7px)'; og.drawImage(c, 0, 0); return r[side] = o;
+  }
+  function drawRim(g, im, dx, dy, w, h, fc) {
+    const info = BB.lightInfoAt && BB.lightInfoAt(BB.P ? BB.P.x : 0); if (!info || info.i < .12) return;
+    const side = info.side * (fc < 0 ? -1 : 1);
+    g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = clamp(info.i * .5, 0, .45); g.drawImage(rimOf(im, side), dx, dy, w, h); g.restore();
+  }
   function handPos(st, p) {
     if (st === 'phone' || st === 'phoneUse' || st === 'listen' || st === 'nervous') return [13, -150];
     if (st === 'mop' || st === 'vac') return [26, -88 + S_(p.tool * .05) * 2];
@@ -348,7 +362,7 @@
       let idx = 0, sc = 1.2;
       if (cyc) idx = Math.floor((((inst.phase / (2 * Math.PI)) % 1) + 1) % 1 * 5) % 5; else { idx = st === 'jump' ? 4 : 3; sc = 1.15; }
       const im = I['run_' + idx], bob = cyc ? Math.abs(S_(inst.phase)) * 3 : 0;
-      draw(im, 0, (st === 'jump' || st === 'fall' ? -4 : 0) - bob, sc);
+      draw(im, 0, (st === 'jump' || st === 'fall' ? -4 : 0) - bob, sc); { const ww = im.width * k * sc, hh = im.height * k * sc; drawRim(g, im, -ww / 2, -hh + ((st === 'jump' || st === 'fall' ? -4 : 0) - bob), ww, hh, fc); }
       if (held === 'bag' || held === 'clothes') drawHeld(g, held, 34, -100 + (idx % 2) * 3, p, t);
     } else {
       // standing sprite deformed by the pose parameters (lean, crouch, bounce, breathing, weight shift)

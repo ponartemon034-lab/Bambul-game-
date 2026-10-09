@@ -169,8 +169,16 @@
   /* ------------------------------------------------------------------- loop */
   let last = 0, running = false, cv, g;
   BB.paused = false; BB.timeScale = 1;
+  /* adaptive quality: if the device cannot keep up, switch off the expensive effects step by step (only in 'auto' mode) */
+  const AQ = { ema: 16, step: 0, t: 0, order: ['high', 'med', 'low'] };
+  function adaptQuality(rawMs, now) {
+    if (!BB.autoQ || document.hidden || BB.paused) return;
+    AQ.ema = AQ.ema * .96 + Math.min(rawMs, 120) * .04;
+    if (now - AQ.t > 3500 && AQ.ema > 34 && AQ.step < 2) { AQ.step++; AQ.t = now; AQ.ema = 20; BB.setQuality(AQ.order[AQ.step]); BB.fit && BB.fit(); console.info('[quality] auto ->', AQ.order[AQ.step]); }
+  }
   function frame(now) {
     requestAnimationFrame(frame);
+    if (last) adaptQuality(now - last, now);
     let dt = Math.min(.05, (now - last) / 1000 || 0); last = now; dt *= BB.timeScale; tGlobal += dt;
     if (!BB.built) return;
     const S = BB.S;
@@ -216,6 +224,7 @@
   BB.boot = async function () {
     cv = $('#cv'); g = cv.getContext('2d');
     const q = qs.get('q') || (/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) ? 'med' : 'high'); BB.setQuality(q);
+    BB.autoQ = !qs.get('q') && (!BB.CFG || !BB.CFG.quality || BB.CFG.quality === 'auto'); AQ.step = q === 'high' ? 0 : q === 'med' ? 1 : 2;
     if (qs.has('debug')) BB.debug.on = true;
     BB.fit(); addEventListener('resize', BB.fit); addEventListener('orientationchange', () => setTimeout(BB.fit, 200));
     const bar = $('#loadBar'), txt = $('#loadTxt');

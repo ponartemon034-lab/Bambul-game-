@@ -46,9 +46,9 @@
 
   /* ------------------------------------------------------------- quality */
   const QS = {
-    high: { bake: 2.2, band: 3, lightDiv: 4, particles: 1, reflect: true, blur: true, maxPx: 2.6e6, grain: true },
-    med:  { bake: 1.7, band: 4, lightDiv: 5, particles: .6, reflect: true, blur: true, maxPx: 1.6e6, grain: false },
-    low:  { bake: 1.25, band: 6, lightDiv: 6, particles: .3, reflect: false, blur: false, maxPx: 0.9e6, grain: false }
+    high: { bake: 2.2, band: 3, lightDiv: 4, particles: 1, reflect: true, blur: true, maxPx: 2.6e6, grain: true, bloom: true, shadows: true, enhance: true, fx: true },
+    med:  { bake: 1.7, band: 4, lightDiv: 5, particles: .6, reflect: true, blur: true, maxPx: 1.6e6, grain: false, bloom: true, shadows: true, enhance: true, fx: true },
+    low:  { bake: 1.25, band: 6, lightDiv: 6, particles: .3, reflect: false, blur: false, maxPx: 0.9e6, grain: false, bloom: false, shadows: false, enhance: true, fx: false }
   };
   const Q = BB.quality = Object.assign({ name: 'high' }, QS.high);
   BB.setQuality = name => { if (!QS[name]) name = 'med'; Object.assign(Q, QS[name], { name }); };
@@ -67,6 +67,26 @@
     }
     return c;
   };
+
+  /* Bake-time realism pass: top-light gradient, ambient-occlusion band along inner edges, soft rim highlight on top edges, micro grain. */
+  BB.enhance = function (c, str) {
+    str = str == null ? 1 : str; const W = c.width, H = c.height, B = c.B || 1; if (W < 8 || H < 8) return c;
+    const g = c.getContext('2d'); const tmp = () => { const t = mk(W, H); return [t, t.getContext('2d')]; };
+    const [bl, blg] = tmp(); const hasF = 'filter' in blg;
+    if (hasF) { blg.filter = 'blur(' + Math.max(1, 1.8 * B) + 'px)'; blg.drawImage(c, 0, 0); blg.filter = 'none'; }
+    g.save(); g.globalCompositeOperation = 'source-atop';
+    if (hasF) {                                   // inner edge band -> ambient occlusion
+      const [e, eg] = tmp(); eg.drawImage(c, 0, 0); eg.globalCompositeOperation = 'source-in'; eg.fillStyle = '#05030a'; eg.fillRect(0, 0, W, H); eg.globalCompositeOperation = 'destination-out'; eg.drawImage(bl, 0, 0);
+      g.globalAlpha = .55 * str; g.drawImage(e, 0, 0);
+      const [r, rg] = tmp(); rg.drawImage(c, 0, 0); rg.globalCompositeOperation = 'source-in'; rg.fillStyle = '#fff4dc'; rg.fillRect(0, 0, W, H); rg.globalCompositeOperation = 'destination-out'; rg.drawImage(c, 0, Math.max(1, 1.6 * B)); // top edge highlight
+      g.globalAlpha = .26 * str; g.drawImage(r, 0, 0);
+    }
+    const gr = g.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, 'rgba(255,244,222,.11)'); gr.addColorStop(.45, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(6,4,14,.24)');
+    g.globalAlpha = str; g.fillStyle = gr; g.fillRect(0, 0, W, H);
+    const gx = g.createLinearGradient(0, 0, W, 0); gx.addColorStop(0, 'rgba(255,240,215,.05)'); gx.addColorStop(1, 'rgba(0,0,12,.12)'); g.fillStyle = gx; g.fillRect(0, 0, W, H);   // key light from the left
+    g.restore(); return c;
+  };
+
   BB.avgColor = function (c, sx0, sy0, sw, sh) {
     const t = mk(1, 1), g = t.getContext('2d');
     try { g.drawImage(c, sx0, sy0, Math.max(1, sw), Math.max(1, sh), 0, 0, 1, 1); const d = g.getImageData(0, 0, 1, 1).data; return [d[0], d[1], d[2]]; } catch (e) { return [90, 80, 70]; }
@@ -94,7 +114,7 @@
     if (!o.bake) return;
     const fns = typeof o.bake === 'function' ? { _: o.bake } : o.bake;
     o.img = {};
-    for (const k in fns) o.img[k] = BB.bake(o.w, o.h, fns[k], { blur: o.blur });
+    for (const k in fns) { o.img[k] = BB.bake(o.w, o.h, fns[k], { blur: o.blur }); if (Q.enhance && !o.blur && o.enhance !== false) { try { BB.enhance(o.img[k], o.enhance || 1); } catch (e) { } } }
     if (o.depth) {                       // average colours for extruded side / top faces
       const im = o.img[Object.keys(o.img)[0]], B = im.B;
       const top = BB.avgColor(im, 0, 0, im.width, Math.max(1, 3 * B)), side = BB.avgColor(im, im.width - 3 * B, im.height * .2, 3 * B, im.height * .6);
@@ -322,7 +342,7 @@
     for (const l of BB.world.lights) {
       if (l.on && !l.on(S)) continue;
       const f = l.flicker ? 1 - l.flicker * (.5 + .5 * Math.sin(t * 37 + l.ax) * Math.sin(t * 5.3)) : 1;
-      list.push({ ax: l.ax, y: l.y, z: l.z, r: l.r, i: (l.i || 1) * f, color: l.color, bloom: l.bloom == null ? .1 : l.bloom });
+      list.push({ ax: l.ax, y: l.y, z: l.z, r: l.r, i: (l.i || 1) * f, color: l.color, bloom: l.bloom == null ? .1 : l.bloom, room: l.room, cone: l.cone, puddle: l.puddle });
     }
     for (const fn of BB.hooks.lights) { const a = fn(S, t); if (a) for (const l of a) list.push(Object.assign({ z: 0, bloom: 0, color: '255,230,200' }, l)); }
     return list;
@@ -366,6 +386,57 @@
     }
     g.restore();
     return lights;
+  }
+
+
+  /* ------------------------------------------------------------ light fx */
+  function lightFX(g, lights) {
+    g.save(); g.globalCompositeOperation = 'lighter';
+    for (const l of lights) {
+      if (!l.room || l.z > 400) continue;
+      const gl = l.room.gloss || 0, k = V.ppc * V.zoom * sc(l.z), x = sx(l.ax, l.z), yTop = sy(l.y, l.z);
+      if (x < -300 || x > V.W + 300) continue;
+      // volumetric cone under ceiling lamps
+      if (l.cone !== false && l.y >= 175 && l.r >= 180 && l.i > .3) {
+        const yb = sy(0, l.z), w = Math.min(l.r * .42, 150) * k, gr = g.createLinearGradient(0, yTop, 0, yb);
+        gr.addColorStop(0, 'rgba(' + l.color + ',' + (.08 * l.i) + ')'); gr.addColorStop(1, 'rgba(' + l.color + ',0)');
+        g.fillStyle = gr; g.beginPath(); g.moveTo(x - 6 * k, yTop); g.lineTo(x + 6 * k, yTop); g.lineTo(x + w, yb); g.lineTo(x - w, yb); g.closePath(); g.fill();
+      }
+      // pool of light on the floor (stronger on glossy floors)
+      if (l.puddle !== false && l.y >= 80 && l.i > .3) BB.floorEllipse(g, l.ax, l.z, Math.min(l.r * .5, 190), Math.min(l.r * .16, 60), 'rgba(' + l.color + ',' + Math.min(.38, .07 + gl * 1.1) * l.i + ')');
+    }
+    g.restore();
+  }
+  function silOf(o, key, im) {
+    o._sil = o._sil || {}; if (o._sil[key]) return o._sil[key];
+    const w = Math.max(4, im.width >> 2), h = Math.max(4, im.height >> 2), c = mk(w, h), cg = c.getContext('2d'); cg.drawImage(im, 0, 0, w, h);
+    cg.globalCompositeOperation = 'source-in'; cg.fillStyle = '#04020a'; cg.fillRect(0, 0, w, h);
+    const o2 = mk(w, h), g2 = o2.getContext('2d'); if ('filter' in g2) g2.filter = 'blur(1.4px)'; g2.drawImage(c, 0, 0); return o._sil[key] = o2;
+  }
+  function wallShadows(g, list, S) {
+    const kW = V.ppc * V.zoom * sc(L.wallZ), yTop = sy(L.ceilH, L.wallZ), yBot = sy(0, L.wallZ);
+    for (const o of list) {
+      if (!o.img || o.part || o.draw || o.post || o.shadowCast === false || o.z > L.wallZ - 16 || o.z < -10 || o.h < 28 || !o.room) continue;
+      const room = o.room; let best = null, bs = 0;
+      for (const l of room.lights) { if (l.on && !l.on(S)) continue; if (l.z >= o.z - 6 || l.r < 120) continue; const d = Math.abs(l.ax - o.ax), sc_ = (l.i || 1) * Math.max(0, 1 - d / (l.r * 1.15)); if (sc_ > bs) { bs = sc_; best = l; } }
+      if (!best || bs < .12) continue;
+      const t = (L.wallZ - best.z) / (o.z - best.z); if (!(t > 1.04 && t < 3.2)) continue;
+      const key = o.variant ? (o.variant(S) || '_') : '_', im = o.img[key]; if (!im) continue;
+      const cx = best.ax + (o.ax - best.ax) * t, yb = best.y + (o.y - best.y) * t, yt = best.y + (o.y + o.h - best.y) * t, w = o.w * t * kW;
+      const X = sx(cx, L.wallZ), Ya = sy(yb, L.wallZ), Yb = sy(yt, L.wallZ), y0 = Math.min(Ya, Yb), hh = Math.abs(Ya - Yb);
+      if (X + w / 2 < 0 || X - w / 2 > V.W || hh < 4) continue;
+      g.save(); g.beginPath(); g.rect(sx(room.x0, L.wallZ), yTop, room.w * kW, yBot - yTop); g.clip();
+      g.globalAlpha = Math.min(.42, .5 * bs / Math.pow(t, .7)); g.drawImage(silOf(o, key, im), X - w / 2, y0, w, hh); g.restore();
+    }
+  }
+  let bloomA = null, bloomB = null;
+  function bloomPass(g) {
+    const cw = g.canvas.width, ch = g.canvas.height, bw = Math.max(32, cw >> 3), bh = Math.max(18, ch >> 3);
+    if (!bloomA || bloomA.width !== bw) { bloomA = mk(bw, bh); bloomB = mk(bw, bh); }
+    const a = bloomA.getContext('2d'), b = bloomB.getContext('2d'); if (!('filter' in b)) return;
+    a.setTransform(1, 0, 0, 1, 0, 0); a.globalCompositeOperation = 'copy'; a.drawImage(g.canvas, 0, 0, bw, bh);
+    b.setTransform(1, 0, 0, 1, 0, 0); b.globalCompositeOperation = 'copy'; b.filter = 'brightness(.8) contrast(2.3) blur(2.4px)'; b.drawImage(bloomA, 0, 0); b.filter = 'none';
+    g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'lighter'; g.globalAlpha = .28; g.imageSmoothingEnabled = true; g.drawImage(bloomB, 0, 0, cw, ch); g.restore();
   }
 
   /* ----------------------------------------------------------- reflections */
@@ -463,6 +534,7 @@
     // reflections go on the floor, below everything standing on it
     let gloss = 0; for (const r of vis) gloss = Math.max(gloss, r.gloss || 0);
     reflectPass(g, list, S, t, gloss);
+    if (Q.shadows) wallShadows(g, list, S);
     // 4. paint far -> near, with painter's fog between depth bands
     const fogBands = [[260, .10], [150, .08], [90, .06]];
     let fb = 0, drawn = 0;
@@ -477,11 +549,14 @@
     BB.frameStats.drawn = drawn;
     // 5. light, then self-lit things and atmosphere
     const lights = drawLighting(g, S, t);
+    if (Q.fx && lights) lightFX(g, lights);
     for (const o of list) if (o.post && !o.part && !o.draw) { if (o.hidden && o.hidden(S)) continue; g.save(); g.globalCompositeOperation = o.postMode || 'source-over'; drawSprite(g, o, S, t); g.restore(); }
     drawParticles(g, lights || [], false); drawParticles(g, lights || [], true);
     for (const fn of BB.hooks.post) fn(g, t, S);
+    if (Q.bloom) bloomPass(g);
     // 6. grade: vignette + grain
     { const gr = g.createRadialGradient(V.W / 2, V.H * .52, V.H * .35, V.W / 2, V.H * .52, V.W * .72); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(4,3,8,.58)'); g.fillStyle = gr; g.fillRect(0, 0, V.W, V.H); }
+    { g.save(); g.globalCompositeOperation = 'overlay'; const gg = g.createLinearGradient(0, 0, 0, V.H); gg.addColorStop(0, 'rgba(60,105,150,.16)'); gg.addColorStop(.55, 'rgba(0,0,0,0)'); gg.addColorStop(1, 'rgba(255,165,85,.12)'); g.fillStyle = gg; g.fillRect(0, 0, V.W, V.H); g.restore(); }
     if (Q.grain && noiseC) { g.save(); g.globalCompositeOperation = 'overlay'; g.globalAlpha = .07; const ox = (t * 977 | 0) % 128, oy = (t * 631 | 0) % 128; for (let x = -ox; x < V.W; x += 128) for (let y = -oy; y < V.H; y += 128) g.drawImage(noiseC, x, y); g.restore(); }
     if (BB.debug.on) drawDebug(g, S, t, vis);
   };
@@ -517,6 +592,7 @@
     V.dpr = dpr; recalc();
   };
   /* camera helpers used by main.js */
+  BB.lightInfoAt = function (x) { const l = nearestLight(x); if (!l) return null; return { side: l.ax >= x ? 1 : -1, i: Math.min(1, (l.i || 1) * (1 - Math.abs(l.ax - x) / (l.r * 1.2))), color: l.color }; };
   BB.camLimits = function () { const half = (V.W / 2) / (V.ppc * V.zoom); return [Math.min(half, L.worldW / 2), Math.max(L.worldW - half, L.worldW / 2)]; };
   recalc();
 })();
