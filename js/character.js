@@ -200,6 +200,44 @@
       g.beginPath(); g.roundRect(-96, -40, 60, 36, 12); g.fillStyle = '#c2512f'; g.fill(); ink(g, 1.3); g.fillStyle = '#30303a'; g.fillRect(-88, -28, 40, 6); blob(g, -84, -4, 8, 8, '#22222a'); blob(g, -50, -4, 8, 8, '#22222a'); }
   }
 
+
+  /* ---- realistic painted sprite set for Bamboul (from the user's reference renders; see tools/process_sprites.py) ---- */
+  const HS = { px: 1.9, ready: false, img: {}, names: ['idle', 'closeup', 'run_0', 'run_1', 'run_2', 'run_3', 'run_4', 'run_5', 'run_6'] };
+  (function loadHeroSprites() {
+    if (typeof Image === 'undefined') return; let left = HS.names.length;
+    HS.names.forEach(n => { const im = new Image(); im.onload = () => { if (--left === 0) { HS.ready = !!(HS.img.idle && HS.img.idle.width); if (BB.char) BB.char.spritesReady = HS.ready; } }; im.onerror = () => { left--; }; im.src = 'assets/char/hero_' + n + '.png'; HS.img[n] = im; });
+  })();
+  function handPos(st, p) {
+    if (st === 'phone' || st === 'phoneUse' || st === 'listen' || st === 'nervous') return [13, -150];
+    if (st === 'mop' || st === 'vac') return [26, -88 + S_(p.tool * .05) * 2];
+    if (st === 'scrub' || st === 'scrubFridge' || st === 'scrubToilet' || st === 'repair' || st === 'tinker' || st === 'inspectLow') return [30, -78];
+    return [22, -86];
+  }
+  function drawHeroSprite(inst, g) {
+    const p = inst.pose, st = inst.state, held = inst.held, t = inst.t, k = 1 / HS.px, I = HS.img;
+    const cyc = st === 'walk' || st === 'run' || st === 'carry';
+    g.save(); const fc = Math.abs(inst.face) < .12 ? .12 * Math.sign(inst.face || 1) : inst.face; g.scale(fc, 1);
+    const draw = (im, ox, oy) => { const w = im.width * k, h = im.height * k; g.drawImage(im, -w / 2 + (ox || 0), -h + (oy || 0), w, h); };
+    if (cyc || st === 'jump' || st === 'fall' || st === 'stumble' || st === 'panic' && false) {
+      let idx = 0; if (cyc) idx = Math.floor((((inst.phase / (2 * Math.PI)) % 1) + 1) % 1 * 7) % 7; else idx = st === 'jump' ? 5 : 3;
+      const im = I['run_' + idx]; draw(im, 0, st === 'jump' || st === 'fall' ? -6 : 0);
+      if (held === 'bag' || held === 'clothes') drawHeld(g, held, 30, -92 + (idx % 2) * 3, p, t);
+    } else {
+      // standing sprite deformed by the pose parameters (lean, crouch, bounce, breathing)
+      const im = I.idle, crouch = clamp(p.crouch, -6, 44), hip = -92;
+      const sy = (1 - crouch / 215) * (1 + (st === 'idle' ? S_(t * 2) * .004 : 0)), sx = 1 + crouch / 520;
+      const lean = clamp(p.lean, -.5, .75) * .85, shake = (st === 'panic' ? S_(t * 40) * 1.2 : 0), hop = p.lift || 0;
+      g.translate(shake, -hop); g.translate(0, hip); g.rotate(lean); g.scale(sx, sy); g.translate(0, -hip);
+      if (st === 'sit') { g.translate(-6, 0); }
+      draw(im, S_(t * .8) * .0, 0);
+      const hp = handPos(st, p);
+      if (held === 'mop' || held === 'vac') drawTool(g, held, p, hp[0], hp[1]);
+      else if (held) drawHeld(g, held, hp[0], hp[1], p, t);
+      if (st === 'mop' || st === 'vac') { /* tool is drawn over the legs */ }
+    }
+    g.restore();
+  }
+
   /* ---- the rig ---- */
   function createRig(kind) {
     const L = LOOKS[kind], sc = L.h / 178;
@@ -212,6 +250,7 @@
       const a = 1 - Math.exp(-dt * (cyc ? 40 : 15)); for (const k in tg) inst.pose[k] = inst.pose[k] === undefined ? tg[k] : lerp(inst.pose[k], tg[k], k === 'eye' ? Math.min(1, a * 3) : a);
     };
     inst.draw = function (g, t) {
+      if (kind === 'bamboul' && HS.ready) return drawHeroSprite(inst, g);
       const p = inst.pose, held = inst.held, st = inst.state;
       g.save(); g.scale(sc, sc);
       const fc = Math.abs(inst.face) < .12 ? .12 * Math.sign(inst.face || 1) : inst.face;
@@ -307,7 +346,7 @@
       kind = LOOKS[kind] ? kind : 'bamboul'; mood = mood || 'neutral'; const key = kind + ':' + mood;
       if (portraitCache[key]) return portraitCache[key];
       const c = BB.mk(160, 160); portraitCache[key] = c; paintRigPortrait(c, kind, mood);
-      if (kind === 'bamboul') { loadPhoto(); paintPhotoPortrait(c, mood); }
+      if (kind === 'bamboul') { const im = HS.img.closeup; const paint = () => { const g = c.getContext('2d'); g.fillStyle = '#4a3f2b'; g.fillRect(0, 0, 160, 160); g.drawImage(im, 0, 0, 128, 128, 10, 14, 140, 140); const tn = { angry: 'rgba(200,40,30,.28)', shock: 'rgba(255,255,255,.18)', smug: 'rgba(240,190,60,.16)' }[mood]; if (tn) { g.fillStyle = tn; g.fillRect(0, 0, 160, 160); } }; if (im && im.complete && im.width) paint(); else if (im) im.addEventListener('load', paint); }
       return c;
     },
     createNpcs() {
