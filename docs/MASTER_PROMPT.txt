@@ -1,0 +1,1472 @@
+CLAUDE MASTER PROJECT PROMPT
+BAMBOUL: THE LANDLORD IS COMING
+FULL GAME DESIGN, PRODUCTION, CHARACTER CREATION, VISUAL DIRECTION, GAMEPLAY, RUSSIAN DIALOGUE, MULTIPLATFORM IMPLEMENTATION, AND QA SPECIFICATION
+
+READ THIS ENTIRE DOCUMENT BEFORE STARTING.
+This is a production brief, not a request for a concept pitch. You must inspect the existing project, make decisions, create the assets and systems, implement the game, run it, test it, fix defects, and deliver a playable result. Do not stop after planning, writing a design document, generating a mockup, or producing screenshots.
+
+======================================================================
+0. YOUR MISSION AND NON-NEGOTIABLE RULES
+======================================================================
+
+You are acting as a coordinated senior game-development studio. Your roles include:
+- Creative director and game designer.
+- Technical director / lead gameplay programmer.
+- Environment artist and 3D modeler.
+- Character artist, rigger, and animator.
+- Technical artist and rendering engineer.
+- UI/UX designer.
+- Russian dialogue writer and comedy editor.
+- Audio designer.
+- QA engineer and performance specialist.
+- Desktop and Android build engineer.
+
+Build a funny, crude, highly interactive, visually rich platformer about Bamboul, a lazy man trapped in an apartment full of filth and broken household equipment. His landlord is coming soon. Bamboul hates cleaning and constantly complains, swears, procrastinates, and reacts to the disasters he causes. The player must get the apartment into an acceptable state before the landlord arrives, while unexpected breakdowns and distractions make everything worse.
+
+The game must be a real, playable game, not a static image, a slide show, a collection of disconnected room screenshots, or a UI mockup.
+
+NON-NEGOTIABLE REQUIREMENTS:
+1. Build a connected, explorable apartment with actual geometry or independently placed world objects.
+2. The player walks through the rooms in a coherent world. Do not arrange all rooms as a flat collage or show the whole apartment as one background screenshot.
+3. The background must use a real multilayer parallax/depth architecture, not one large static image.
+4. The player character must be modeled or created from the user's supplied photograph. Preserve recognizable facial identity and proportions as closely as the selected visual style allows. Do not substitute a generic stock character.
+5. Create the rest of the characters, props, environment assets, animations, effects, and audio placeholders/assets independently; do not expect the user to provide every asset.
+6. The player model/sprite must be correctly scaled relative to doors, furniture, appliances, and all other objects. Character scale must stay consistent between rooms and animation frames.
+7. Every visible control must work. Keyboard, mouse where applicable, and Android touch controls must be implemented and tested.
+8. Gameplay, dialogue, repairs, cleaning, the countdown, scoring/progress, and game states must be connected to actual game logic.
+9. The main game language is Russian. The dialogue must sound like natural, chaotic, meme-heavy Russian speech with profanity, awkwardness, self-mockery, and absurdity.
+10. Do not silently remove features because they are difficult. If a requirement is technically constrained, implement the closest robust alternative and document the limitation.
+11. Do not claim that a build or test succeeded unless you actually ran it and observed the result.
+12. The goal is an ambitious, polished indie game with a cinematic, high-quality presentation. Do not falsely claim it is a literal AAA production; prioritize a coherent, polished, technically sound result over empty marketing language.
+
+======================================================================
+1. FIRST ACTION: INSPECT THE PROJECT AND ALL USER-PROVIDED ASSETS
+======================================================================
+
+Before coding:
+- Inspect the full project structure, engine, scripts, dependencies, scene setup, assets, build scripts, and current runtime behavior.
+- Run the existing project and observe the current state.
+- Inspect any previously generated prompt, existing game files, screenshots, reference images, and user-provided character photograph available in the workspace.
+- Identify broken controls, missing assets, placeholder art, static backgrounds, incorrect room layout, scaling problems, and unfinished systems.
+- Preserve functional systems where practical; repair or refactor broken systems instead of replacing everything blindly.
+- Make a concise internal implementation plan and then execute it.
+- Establish a working baseline and a repeatable way to launch the game.
+- Create backups or use version control before major destructive changes if available.
+
+If the user has not yet attached the protagonist photograph to the active project workspace, do not invent the person's appearance. Build the character pipeline and a clearly labeled temporary placeholder, then request or identify the exact photo input needed. Once the photograph is supplied, process it into the final character assets.
+
+Do not stop at an audit. Proceed into implementation.
+
+======================================================================
+2. MULTI-AGENT / SUBAGENT WORKFLOW
+======================================================================
+
+If Claude Code, the environment, or the available orchestration system supports subagents, delegate parallel work with explicit ownership and integration rules. If true subagents are unavailable, simulate these workstreams yourself in an organized sequence.
+
+Recommended workstreams:
+A. GAME DESIGN AND LEVEL FLOW
+   Owns core loop, objectives, room layout, mission progression, timer balance, fail/win states, and game feel.
+
+B. GAMEPLAY AND INTERACTION PROGRAMMING
+   Owns character controller, interaction system, object state machines, cleaning mechanics, repairs, minigames, scoring, save state, and game flow.
+
+C. ENVIRONMENT ART AND WORLD ARCHITECTURE
+   Owns connected apartment construction, modular assets, depth planes, collisions, occlusion, room transitions, props, and environmental storytelling.
+
+D. CHARACTER ART AND ANIMATION
+   Owns photo-based protagonist creation, model/sprite generation, rigging or sprite sheets, animation states, scale validation, and integration.
+
+E. GRAPHICS / TECHNICAL ART
+   Owns parallax, camera, materials, lighting, shadows, reflections, shaders, post-processing, render profiles, and performance.
+
+F. RUSSIAN DIALOGUE AND COMEDY
+   Owns contextual dialogue, voice/text style, phone conversations, interaction barks, failure lines, repair commentary, and quality control for natural Russian.
+
+G. UI / INPUT / MULTIPLATFORM
+   Owns desktop controls, Android touch controls, responsive UI, fullscreen, menus, accessibility/readability, and device testing.
+
+H. QA AND PERFORMANCE
+   Owns smoke tests, interaction coverage, scene traversal, collision checks, performance profiling, bug reproduction, and acceptance criteria.
+
+Coordination rules:
+- Define common interfaces, naming conventions, world units, scene ownership, asset formats, and interaction contracts before parallel work begins.
+- Avoid multiple agents editing the same file without coordination.
+- Integrate frequently, not only at the end.
+- Run the game after every major integration.
+- Resolve conflicts and ensure all modules use the same game state and interaction system.
+- Keep a task checklist with statuses: planned, in progress, implemented, tested, blocked.
+- Subagents must deliver working artifacts and clear integration notes, not just recommendations.
+- The lead agent remains responsible for the final integrated game.
+
+======================================================================
+3. CORE GAME CONCEPT
+======================================================================
+
+Working title: “БАМБУЛЬ: ХОЗЯИН ЕДЕТ”
+Optional English internal title: “BAMBOUL: THE LANDLORD IS COMING”
+
+Genre:
+- 2.5D side-scrolling platformer / exploration game.
+- Comedy and household-chaos simulator.
+- Timed cleaning challenge.
+- Short interactive minigames.
+- Environmental storytelling and reactive dialogue.
+
+Tone:
+- Crude Russian comedy.
+- Profanity and absurd exaggeration.
+- Internet-meme energy without relying exclusively on fleeting references.
+- Self-deprecating humor.
+- Awkward excuses and escalating panic.
+- A lived-in, grimy, recognizable apartment.
+- Cinematic visual presentation contrasted with ridiculous domestic problems.
+
+The comedy must arise from character, timing, reactions, physical comedy, interactive failures, and specific details. Do not make every line the same generic swear word. Dialogue needs rhythm, personality, escalation, and contextual variety.
+
+Bamboul is lazy, avoidant, easily distracted, overconfident about fixing things, and capable of frantic bursts of effort when the landlord calls. He wants to do the bare minimum but keeps making problems worse. He may enjoy beer, shisha, and IQOS as part of the character/environmental context, but these are not the main gameplay objective and should not become instructions for substance use.
+
+The landlord is angry, threatening in an exaggerated comedic way, and constantly calls to announce that he is coming. Keep threats cartoonish and comedic rather than graphic.
+
+Dan is Bamboul's brother. Bamboul calls him for help when the printer or household equipment breaks. Dan can provide hints, sarcasm, or a repair sequence.
+
+The player must constantly choose between:
+- Doing a necessary chore.
+- Attempting a quick shortcut.
+- Ignoring the task.
+- Getting distracted.
+- Fixing a newly broken object.
+- Answering the landlord.
+- Calling Dan.
+- Racing the countdown.
+
+The apartment begins in a disgusting state. The landlord's arrival time is limited. Tasks increase the cleanliness score, but mistakes, procrastination, and new failures waste time.
+
+======================================================================
+4. GAMEPLAY LOOP AND PROGRESSION
+======================================================================
+
+Core loop:
+1. Start in the apartment with a visible landlord-arrival countdown.
+2. The wall telephone rings at scripted and reactive moments.
+3. The landlord announces he is coming and warns Bamboul not to leave a mess.
+4. The player explores the apartment and identifies tasks.
+5. Bamboul comments on chores and objects, often refusing or procrastinating.
+6. The player cleans rubbish, vacuums, mops, handles the rotten refrigerator, repairs the faucet and toilet, and deals with the 3D printer.
+7. Minigames require interaction rather than simply pressing one button.
+8. Tasks change the environment visibly and update cleanliness/progress.
+9. Randomized or authored complications may occur within fair limits.
+10. The landlord calls again, increasing pressure.
+11. The player decides what to prioritize before the deadline.
+12. End with a success, partial success, or comedic failure based on the final state.
+
+The timer must be real and continue consistently. Pausing should pause it unless a deliberate design decision is documented.
+
+Possible progress systems:
+- Cleanliness percentage.
+- Task checklist.
+- Time remaining.
+- Optional score for speed and thoroughness.
+- Chaos level / apartment disaster meter.
+- Dan-help or tool availability where appropriate.
+
+Use a clear task system. Tasks should not be hidden without clues. Each task needs:
+- A clear world location.
+- A visible dirty/broken state.
+- A way to interact.
+- Progress feedback.
+- A completion state.
+- Appropriate dialogue.
+- A time cost or reward where appropriate.
+- A visible environmental result.
+
+The player should be able to complete a minimum viable run from start to end without softlocks.
+
+Create a tutorial that teaches movement, interaction, cleaning, and the countdown without long exposition.
+
+Difficulty should increase through the landlord's pressure and contextual complications, not by making controls unresponsive.
+
+Possible outcomes:
+- “Хозяин пришёл — квартира сияет”: excellent cleaning.
+- “Ну… жить можно”: partial success.
+- “Блядский музей катастроф”: poor cleanliness, many failures.
+- Optional hidden ending for an unusually thorough or absurd route.
+
+Do not make one missed optional object automatically ruin the entire game.
+
+======================================================================
+5. APARTMENT FLOOR PLAN AND WORLD DESIGN
+======================================================================
+
+Build a coherent, connected apartment with:
+- Entrance hallway.
+- Living room.
+- Kitchen.
+- Bathroom and toilet.
+- Workshop / hobby corner containing the Bambu Lab 3D printer.
+
+The rooms must connect through real doorways and walkable floor segments. The apartment must not be displayed as a collage of tiny boxes or as a static cutaway screenshot with the player pasted on top.
+
+The player should walk through the apartment in a continuous world. Use a side-on or slightly angled 2.5D perspective. Adjacent rooms can be visible through doors, open walls, or carefully composed architectural cutaways, but the floor plan must make spatial sense.
+
+Include believable architecture:
+- Floor and wall thickness.
+- Doorframes and door jambs.
+- Baseboards.
+- Window frames.
+- Pipes.
+- Wall sockets and switches.
+- Shelves.
+- Cabinets.
+- Ceiling lamps.
+- Furniture with actual depth.
+- Recessed areas.
+- Door handles.
+- Contact shadows.
+- Plausible object placement.
+
+Suggested environmental details:
+- Entrance: shoes, coats, garbage, random boxes, clutter, wall telephone in a suitable visible location.
+- Living room: old sofa, coffee table, TV, dusty shelves, scattered wrappers, cans/bottles, cables, blankets, crumbs, ashtray/shisha-related props.
+- Kitchen: sink, dirty dishes, rubbish, stained counters, fridge with rotten food, cleaning supplies, food packaging.
+- Bathroom: stained toilet, broken flush button, dirty floor, sink, defective howling faucet, damp tile, towel, cleaning products.
+- Workshop: Bambu Lab printer, filament spools, tubes, tools, workbench, failed prints, cables, spare parts, clutter.
+
+The visual mess must be designed intentionally. Avoid random prop spam. Use clusters of clutter and areas of visual rest.
+
+The rooms should have different identities:
+- Living room: warm but dirty, dusty fabrics and mixed light.
+- Kitchen: practical, slightly harsh overhead light, stained surfaces and food clutter.
+- Bathroom: cooler light, tile, damp reflections, visible plumbing.
+- Workshop: monitor glow, metal/plastic details, filament colors, tools and printer components.
+- Hallway: transitional space, coats, shoes, entrance door, phone visibility if that placement is used.
+
+The camera must reveal rooms as the player approaches them. Use room-aware framing and smooth transitions, not abrupt teleportation between unrelated images.
+
+======================================================================
+6. VISUAL DIRECTION: CINEMATIC, GROUNDED, STYLIZED REALISM
+======================================================================
+
+The user supplied a reference screenshot featuring:
+- Cinematic composition and a low camera perspective.
+- Strong foreground / middle-ground / background separation.
+- Rich architecture and small environmental details.
+- Wet-looking reflective surfaces.
+- Cool ambient light contrasted with warm practical lights.
+- Atmospheric depth.
+- Detailed materials and environmental wear.
+- Character silhouettes that remain readable against the environment.
+
+Transfer these visual principles into the apartment, not the street setting itself.
+
+The target should feel like a carefully art-directed game world inspired by the environmental richness and mood of games such as Unravel, Little Nightmares, and Prince of Persia, while maintaining its own visual identity and preserving the comedic apartment premise.
+
+Aim for:
+- Believable material response.
+- Controlled, cinematic lighting.
+- Readable silhouettes.
+- Strong depth.
+- High-quality props.
+- Consistent scale.
+- Rich but organized detail.
+- Subtle atmospheric effects.
+- Clear gameplay readability.
+
+Do not claim to reproduce another game's proprietary assets or exact rendering. Use the reference as an artistic direction, not an asset source.
+
+Avoid:
+- Flat cartoon clip art.
+- Generic stock sprites.
+- One giant background image.
+- Low-detail placeholder geometry in the final result.
+- Rooms arranged like a collage.
+- Uncontrolled neon colors.
+- Excessive bloom or fog.
+- Inconsistent character proportions.
+- A single repeated texture across every surface.
+- Random shadows or decorative highlights that do not match the light sources.
+- A “pretty” scene with no real collision or interaction.
+
+======================================================================
+7. CRITICAL GRAPHICS REQUIREMENT: REAL MULTI-LAYER PARALLAX
+======================================================================
+
+The background must NOT be one static image. Do not generate a screenshot of the whole apartment and move the character over it.
+
+Build a genuine environment using independently positioned scene objects, modular geometry, sprites, or 3D assets.
+
+Create a reusable multi-layer parallax system.
+
+Suggested layers:
+Layer 0: distant architectural background, far walls, distant room shapes, windows and silhouettes.
+Layer 1: deep environment details, distant shelves, wall decorations, pipes and secondary objects.
+Layer 2: main architecture, room walls, doors, large furniture and appliances, aligned to world geometry.
+Layer 3: gameplay plane, player and interactive objects using authoritative world transforms.
+Layer 4: foreground occluders such as doorframes, furniture edges, pipes, shelves and hanging objects.
+Layer 5: atmosphere such as dust, steam and subtle particles.
+
+Suggested initial parallax factors for decorative layers:
+- Distant: 0.10–0.20.
+- Deep background: 0.20–0.35.
+- Mid-background: 0.40–0.65.
+- Near decorative elements: 0.70–0.90.
+- Gameplay plane: 1.00.
+
+These are tuning starting points, not mandatory physical constants. Adjust based on actual camera movement and scene composition.
+
+Requirements:
+- Layers must move at distinct rates when the camera moves.
+- Use a stable camera reference; do not accumulate offsets frame by frame.
+- Avoid gaps at level edges.
+- Use modular sections or repeatable geometry where appropriate.
+- Do not stretch low-resolution art across the level.
+- The main gameplay plane must remain aligned with collision geometry.
+- Foreground objects should occlude the player correctly where appropriate.
+- Interactable objects must not drift independently of their collision or interaction zones.
+- Camera transitions between rooms must preserve depth and continuity.
+- Provide debug views for parallax factors, layer names, collision geometry, camera bounds, room boundaries and occlusion zones.
+- Disable debug overlays in normal play.
+
+Parallax is not sufficient by itself. Combine it with real spatial layering, occlusion, lighting, shadows, materials and camera composition.
+
+======================================================================
+8. CHARACTER MODEL FROM THE USER'S PHOTOGRAPH
+======================================================================
+
+This is one of the highest-priority requirements.
+
+The user will supply a photograph of the protagonist. Use that photograph as the visual source for Bamboul.
+
+Do not replace the person with a generic stock character. Do not produce a character that only vaguely resembles the reference. Preserve recognizable facial features, hairstyle, facial hair if present, skin tone, overall build, clothing cues, and distinctive proportions as far as the source photograph allows.
+
+The goal is a character who is clearly recognizable as the person in the supplied photograph, adapted to the chosen game-art style.
+
+Do not simply paste the photo over a generic body.
+
+Choose the character pipeline according to the engine:
+- For a 2D or 2.5D sprite-based game, create a coherent set of character sprites or a rigged 2D character with consistent proportions and pivots.
+- For a 3D game, create a stylized-realistic 3D model based on the photograph, with suitable topology, UVs, materials, skeleton/rig, and animations.
+- If automated image-to-3D tools are unavailable, use the strongest available local or integrated modeling workflow and document what needs manual refinement.
+- Do not pretend that a single image automatically provides a perfect full 3D model. Infer hidden views conservatively and maintain consistency.
+
+Character asset workflow:
+1. Inspect the supplied photo at full available resolution.
+2. Identify face shape, hairstyle, facial hair, clothing, body build, and distinctive visual traits.
+3. Decide the best pipeline based on the game engine and available tools.
+4. Create a front/side/three-quarter reference sheet if useful.
+5. Create the model or sprite rig.
+6. Create appropriate materials and shading.
+7. Create the animation set.
+8. Validate scale, pivots, foot contact, and silhouettes.
+9. Integrate the character into the actual apartment.
+10. Review screenshots and revise until recognizable and consistent.
+
+Required animation states, as applicable:
+- Idle breathing.
+- Idle looking around / annoyed reaction.
+- Walk.
+- Run or hurried movement.
+- Start moving and stop.
+- Jump, fall, land if platforming requires it.
+- Turn or change direction.
+- Interact / reach.
+- Pick up rubbish.
+- Put rubbish into a bag or bin.
+- Vacuum.
+- Mop.
+- Open and inspect the refrigerator.
+- React to rotten food smell.
+- Clean the refrigerator.
+- Use the telephone.
+- Talk on the phone.
+- React to landlord's threat.
+- Inspect the faucet.
+- Repair the faucet.
+- Interact with the toilet and broken flush button.
+- Clean the toilet.
+- Inspect and repair the 3D printer.
+- Celebrate task completion.
+- Fail, panic, freeze, shrug, or give up.
+- Call or react to Dan.
+- Take damage or stumble only if such mechanics exist.
+
+Animations must:
+- Keep a consistent pivot, scale, baseline and floor contact.
+- Avoid foot sliding where practical.
+- Avoid the character growing or shrinking between frames.
+- Keep tools aligned to hands.
+- Avoid distorted facial features.
+- Blend or transition cleanly between states.
+- Be readable at gameplay camera distance.
+- Support facing left and right if the character can move in both directions.
+
+If sprite sheets are used, generate correctly aligned frames with consistent canvas dimensions, spacing, origin, and transparent backgrounds. Provide a documented sprite-sheet layout and animation metadata.
+
+If a 3D model is used, create a functional rig and animation clips or a practical animation state machine. Do not deliver only a static model.
+
+======================================================================
+9. CRITICAL CHARACTER SCALE: PROPORTIONAL TO THE WORLD
+======================================================================
+
+Bamboul's height MUST be believable relative to the apartment and every object.
+
+Establish one consistent world scale before finalizing the character and environment.
+
+As approximate design references:
+- Adult character height: 1.70–1.85 metres.
+- Interior door height: 1.95–2.10 metres.
+- Kitchen counter height: 0.85–0.95 metres.
+- Refrigerator height: roughly 1.60–2.00 metres depending on design.
+- Ceiling height: roughly 2.4–2.8 metres.
+
+These are practical starting references, not rigid rules. Choose a coherent scale and keep it consistent.
+
+For a 3D engine, consider 1 world unit = 1 metre unless the existing project requires another documented convention. For a 2D engine, define a consistent pixels-to-world-units relationship and use it for all rooms and assets.
+
+The character must not be tiny compared with the door, giant compared with the furniture, or independently resized from room to room.
+
+Do not compensate for bad level scale by arbitrarily scaling the player.
+
+Validate the character beside:
+- Entrance door and handle.
+- Sofa and chair.
+- Kitchen counter.
+- Refrigerator.
+- Toilet.
+- Bathroom sink.
+- Workbench and Bambu Lab printer.
+- Wall telephone and light switches.
+
+His hands must reach plausible interaction points. The feet must sit on the actual floor. The head must not intersect the ceiling or doorframe in ordinary movement. The character must remain the same height through every animation and every room.
+
+Create a scale-validation scene or debug mode showing the character beside a doorway, counter, refrigerator, toilet, and workbench. Check the model in motion, not only in a still frame.
+
+Camera framing should be adjusted to the character and room, not the other way around. Do not zoom out so far that the player becomes a tiny figure just to show the entire apartment.
+
+Correct character-to-world scale is a mandatory acceptance criterion.
+
+======================================================================
+10. CREATE ALL OTHER ASSETS YOURSELF
+======================================================================
+
+Apart from the protagonist photograph, do not depend on the user supplying every asset.
+
+Create or source appropriately licensed assets for:
+- Apartment architecture.
+- Furniture.
+- Doors and windows.
+- Refrigerator and food.
+- Toilet, sink, faucet and plumbing.
+- Bambu Lab 3D printer and components.
+- Filament spools and tubes.
+- Cleaning equipment.
+- Rubbish, bags, wrappers, cans, dishes and containers.
+- Telephone.
+- Tools and spare parts.
+- Dan, landlord, and any additional characters if they appear visually.
+- UI icons and status indicators.
+- Particles and visual effects.
+- Sound effects and music where available.
+
+Use original or properly licensed assets. Do not use copyrighted game assets ripped from Unravel, Little Nightmares, Prince of Persia, or other games.
+
+If procedural modeling or generated assets are used, inspect them for mesh defects, texture issues, inconsistent style, scale problems, and unsuitable collision geometry.
+
+Maintain one coherent art direction across all assets. Avoid mixing photorealistic objects, low-resolution pixel art, flat vector icons, and unrelated cartoon styles without an intentional reason.
+
+======================================================================
+11. MATERIALS, TEXTURES, LIGHTING, SHADOWS AND REFLECTIONS
+======================================================================
+
+Use physically informed materials where supported by the engine.
+
+Create distinct material behavior for:
+- Painted or peeling wallpaper.
+- Plaster.
+- Wood and laminate.
+- Ceramic tile.
+- Metal pipes.
+- Stainless steel appliances.
+- Glass.
+- Fabric upholstery.
+- Plastic containers.
+- Rubber and cables.
+- Dust, stains and grime.
+- Food waste.
+- Printer housing and metal parts.
+- Filament spools.
+
+Vary base color, roughness, specular response, normal detail, edge wear and staining. Do not make all surfaces equally glossy or metallic. Avoid obvious repeating textures and inconsistent texel density.
+
+Lighting should be cinematic but readable:
+- Controlled ambient light.
+- Warm practical lamps in living and kitchen areas.
+- More neutral/cool light in the bathroom.
+- Local monitor/printer glow in the workshop.
+- Plausible light falloff.
+- Contact shadows to ground objects.
+- Correctly oriented shadows.
+- Soft but not shapeless shadow transitions.
+- Cool ambient shadows with restrained warm highlights where appropriate.
+
+Use a combination of local lights and ambient illumination appropriate to the engine. Do not fill every dark corner with uniform light, but preserve enough detail for gameplay.
+
+Use reflections selectively:
+- Slightly glossy laminate.
+- Damp bathroom tile.
+- Wet areas near the leaking faucet.
+- Ceramic highlights.
+- Metallic reflections on appliances.
+- Glass response.
+- Subtle highlights on polished objects.
+
+Do not make every floor look like wet asphalt. Avoid mirror-like reflections on dirty or rough materials. If real-time reflections are too expensive, use efficient approximations such as reflection sprites, baked details, probes, or controlled screen-space techniques.
+
+Atmospheric effects may include subtle dust motes, steam, restrained haze, light scattering, gentle bloom, and mild color grading. Do not apply all effects indiscriminately. Avoid excessive bloom, chromatic aberration, motion blur, heavy vignette, and fog that hides objects.
+
+The result should feel dimensional and art-directed, not merely dark or oversaturated.
+
+======================================================================
+12. CAMERA, COMPOSITION AND ROOM TRANSITIONS
+======================================================================
+
+Use a side-view or slightly angled cinematic camera suitable for 2.5D traversal.
+
+Required features:
+- Smooth player following.
+- Tunable dead zone.
+- Optional modest look-ahead.
+- Room-specific camera bounds.
+- Smooth transitions between rooms.
+- Stable framing during minigames.
+- Controlled zoom.
+- No unexpected camera jumps.
+- No visible edges of background art.
+- No abrupt scale changes.
+
+As a starting point, aim for the player to occupy approximately 8–20% of screen height during ordinary traversal, then tune this based on the character design and target screen size. The player must remain large enough to recognize and animate clearly.
+
+Use composition to show adjacent rooms naturally without turning the apartment into a flat overview. On mobile, adjust camera framing rather than stretching the world or making the player too small.
+
+======================================================================
+13. MOVEMENT, COLLISION AND INTERACTION SYSTEM
+======================================================================
+
+Create a robust player controller with:
+- Left/right movement.
+- Jumping if the level design requires platforming.
+- Reliable ground detection.
+- Collision with floors, walls and solid objects.
+- Consistent acceleration and deceleration.
+- No falling through the floor.
+- No getting stuck on tiny props.
+- Correct facing direction.
+- Interaction range and prompt.
+- Clear feedback when an interaction is unavailable.
+
+Every interactable object should implement a common interaction contract, such as:
+- can_interact(player)
+- interact(player)
+- get_prompt()
+- get_state()
+- update_state()
+
+Use the engine's idiomatic implementation rather than copying this pseudo-interface literally.
+
+When the player enters interaction range, show a context-sensitive prompt. The prompt should name the action and be localized in Russian.
+
+The same interaction must be available through a keyboard key on PC and an on-screen action button on Android.
+
+Avoid making the player hold an exact pixel-perfect position. Use generous interaction zones.
+
+Provide clear feedback for:
+- Too far away.
+- Task already complete.
+- Missing tool.
+- Minigame active.
+- Object temporarily unavailable.
+- Successful action.
+- Failed attempt.
+
+Do not make the same key both jump and interact in a way that causes accidental actions. Provide configurable controls where practical.
+
+======================================================================
+14. THE WALL TELEPHONE AND LANDLORD COUNTDOWN
+======================================================================
+
+The wall-mounted telephone is a key story and gameplay object. It must exist in the environment as a real interactable object, not just a UI icon.
+
+At the start of the game, show a clear countdown until the landlord arrives. The timer must correspond to actual game time.
+
+The phone can ring at the beginning and at authored intervals or after major events. The landlord's calls should:
+- Interrupt or pause the action briefly only if that is intentional and fair.
+- Show a dialogue panel with the landlord speaking.
+- Use distinctive dialogue styling.
+- Allow the player to answer or ignore the call if this is part of the design.
+- Change the countdown or task pressure only according to defined rules.
+- Trigger Bamboul's reaction after the call.
+- Avoid repeating the same line every time.
+
+Example landlord dialogue, in Russian:
+- «Алло. Я скоро приеду. Чтоб у тебя, блядь, было чисто».
+- «Я уже выезжаю. И если я увижу там этот филиал помойки — будем разговаривать».
+- «Только не говори, что ты опять ничего не сделал».
+- «Через десять минут буду. Десять, Бамбуль. Это не философская величина».
+- «Я поднимаюсь. У тебя там не квартира, а археологические раскопки».
+- «Я надеюсь, ты хотя бы мусор вынес, а не переставил его в другую комнату».
+- «Я у подъезда. Не заставляй меня знакомиться с твоей грязью лично».
+
+Use the phone as a recurring source of pressure and comedy. Avoid making the countdown impossible without perfect play.
+
+When the timer reaches zero:
+- Trigger the landlord arrival event.
+- Evaluate the actual cleanliness and task states.
+- Play an appropriate ending.
+- Do not simply freeze the screen without explanation.
+
+The countdown UI must remain readable on PC and mobile, and must not obscure critical controls.
+
+======================================================================
+15. CLEANING GAMEPLAY
+======================================================================
+
+Cleaning should be a series of interactive actions, not a single button that instantly cleans the entire apartment.
+
+## 15.1 Garbage collection
+- Garbage piles are individual world objects or grouped objects with meaningful states.
+- The player approaches and interacts.
+- Bamboul picks up rubbish with an animation.
+- The item or pile changes state and disappears or moves into a bag.
+- A bag/bin has a capacity or collection progress if useful.
+- Full bags must be carried or taken to a designated disposal point if the design includes that task.
+- Garbage completion updates cleanliness and score.
+- Provide several contextual comments and failure reactions.
+
+Example Bamboul lines:
+- «Это не мусор, это слои моей личности».
+- «Ща уберу. Только сначала морально подготовлюсь».
+- «Почему у пакета вес, как у ипотечного решения?»
+- «Поднял одну бумажку — обнаружил цивилизацию».
+- «Блядь, я это вчера выкинул. Как оно опять здесь?»
+- «Если не смотреть на угол, его как будто нет».
+- «Я не ленивый. Я в режиме энергосбережения».
+- «Ещё три фантика — и я официально герой труда».
+
+## 15.2 Vacuuming
+- The vacuum is a usable tool with a pickup/activation interaction.
+- It has movement or an active cleaning area.
+- Dirt and debris visibly disappear when vacuumed.
+- The vacuum has a sound effect and a small animation/effect.
+- It may snag on a cable or lose suction as a minigame complication, but never randomly becomes unusable without feedback.
+- Do not make the vacuum instantly clean an entire room.
+
+Example lines:
+- «Ненавижу пылесос. Он орёт громче, чем мои внутренние проблемы».
+- «Почему этот провод лежит ровно там, где я решил стать человеком?»
+- «Пылесос, брат, мы оба не хотим сегодня работать. Но кто-то должен».
+- «Он опять зажевал что-то. Отлично, бытовая техника меня ненавидит».
+- «Пыль исчезает. Смысл жизни — нет».
+- «Пять минут пылесосить? Да я за пять минут могу три раза передумать».
+
+## 15.3 Mopping
+- The player picks up or equips a mop.
+- The player moves across marked dirty floor areas.
+- Cleaning progress is visible.
+- The cleaned surface changes appearance.
+- The player must cover the target area sufficiently.
+- Optional water/bucket management is allowed if it improves gameplay, but avoid tedious micromanagement.
+- The mop must align with the character's hands and animation.
+
+Example lines:
+- «Пол мыть? Я что, клининг с лицом человека?»
+- «Это пятно старше некоторых государств».
+- «Тряпка уже видела такое, что ей положен отпуск».
+- «Тут не пол грязный, тут история накопилась».
+- «Я мою пол. Где мой орден и психолог?»
+- «Блядь, я прошёл по мокрому. Гениально, Бамбуль, просто гений».
+
+## 15.4 General cleaning feedback
+Every cleaning action should produce:
+- Animation.
+- Audio feedback.
+- Visual state change.
+- Progress update.
+- Contextual Russian line when appropriate.
+- A completion signal.
+
+Do not repeat dialogue too frequently. Use cooldowns, weighted random selection, and state-specific line pools.
+
+======================================================================
+16. ROTTEN REFRIGERATOR MINIGAME
+======================================================================
+
+The refrigerator is full of rotten, expired, disgusting food and needs to be cleaned.
+
+The refrigerator must be a real model with an opening door, visible interior, shelves, containers, and individually interactive or grouped spoiled items.
+
+The player should:
+1. Approach the refrigerator.
+2. Open it.
+3. Trigger Bamboul's disgust reaction.
+4. Inspect the contents.
+5. Remove rotten food.
+6. Put it into a garbage bag or discard area.
+7. Clean dirty shelves or spills.
+8. Close the refrigerator.
+9. Receive completion feedback.
+
+Possible mechanics:
+- Select rotten items.
+- Drag or move them to a trash zone.
+- Hold or repeatedly press the action key to scrub a stain.
+- Avoid dropping garbage on the floor.
+- Manage a limited but forgiving number of actions.
+
+Use stylized visual cues, odor particles, flies or a greenish haze if appropriate, but do not make the contents graphically disgusting. Comedy should be clear without grotesque gore.
+
+Example lines:
+- «Блядь, это холодильник или филиал биолаборатории?»
+- «Эта колбаса уже знает, кто будет следующим хозяином квартиры».
+- «Я не помню, когда купил это. Оно, кажется, помнит».
+- «Открыл дверцу — получил по лицу историей пищевой промышленности».
+- «Срок годности закончился ещё при старом интерфейсе Windows».
+- «Так, этот контейнер не открываем. Он уже самостоятельный субъект права».
+- «Если оно шевельнётся, я вызываю Дэна и эвакуирую дом».
+- «Убрал одну банку. За ней лежит ещё одна банка. Это матрёшка из ошибок».
+- «Блядь, полка липнет. Я теперь тоже часть холодильника».
+- «Закрыть и сделать вид, что ничего не было? Звучит как план».
+
+The refrigerator minigame must have clear start, progress, failure/recovery if applicable, and completion states. Closing and reopening must not reset completed cleaning.
+
+======================================================================
+17. BROKEN HOWLING FAUCET MINIGAME
+======================================================================
+
+The bathroom faucet is broken. When opened, it produces an absurd, loud howling noise and may spray or leak water.
+
+The faucet must be an actual interactive object with state:
+- Off.
+- On and malfunctioning.
+- Being inspected.
+- Under repair.
+- Repaired.
+- Running normally.
+
+When the player opens it before repair:
+- Play a distinctive howling sound.
+- Trigger a short reaction animation.
+- Optionally show a controlled water spray/leak effect.
+- Add an appropriate dialogue bark.
+- Make the sound stop when the faucet is closed or the correct repair state is reached.
+
+Repair minigame options:
+- Inspect the faucet.
+- Identify the loose or misaligned component.
+- Select the correct tool.
+- Tighten or adjust the component through a short timing or sequence interaction.
+- Test the faucet.
+- Confirm the howling is gone.
+
+Do not make the puzzle depend on random guessing without clues. Give visual or dialogue hints.
+
+Example lines:
+- «КРАН, БЛЯДЬ, ПОЧЕМУ ТЫ ВОЕШЬ, КАК СИГНАЛИЗАЦИЯ НА КОНЦЕ СВЕТА?!»
+- «Я хотел помыть руки, а не вызвать древнее зло».
+- «Соседи думают, что у меня в ванной открыли портал».
+- «Закрыл. Тишина. Я победил сантехнику. Пока».
+- «Дэн, ты умеешь чинить кран или только говорить, что умеешь?»
+- «Тут гайка? Тут прокладка? Тут моя последняя нервная клетка».
+- «Если я поверну это ещё раз и оно завоет, я перееду в лес».
+- «Так, медленно открываем… О, вода. Просто вода. Цивилизация вернулась».
+
+Ensure the sound is spatially appropriate, not painfully loud, and has volume controls.
+
+======================================================================
+18. DIRTY TOILET AND BROKEN FLUSH BUTTON MINIGAME
+======================================================================
+
+The toilet is dirty, and its flush button is broken.
+
+Keep the presentation comedic and non-graphic. The objective is to clean the bowl and repair the flush mechanism.
+
+Possible stages:
+1. Inspect the toilet.
+2. React to its condition.
+3. Apply cleaner.
+4. Scrub the target areas using a simple interaction mechanic.
+5. Repair or reattach the flush button.
+6. Test the flush.
+7. Confirm the toilet is clean and functional.
+
+The repair may involve:
+- Selecting the correct component.
+- Aligning a button or linkage.
+- Completing a short sequence or timing challenge.
+- Testing the flush.
+
+The game must provide clear visual feedback. Do not make the button seem fixed until the actual state changes.
+
+Example lines:
+- «Я не буду задавать вопрос, как это вообще произошло».
+- «Кнопка смыва сломана. Конечно. Почему бы и нет».
+- «Это уже не унитаз, это босс второго уровня».
+- «Блядь, я пришёл убрать квартиру, а попал в сантехнический техникум».
+- «Сначала чистим, потом чиним. Или наоборот? Почему у меня нет инструкции к жизни?»
+- «Кнопка нажалась. Вода пошла. Я официально инженер».
+- «Не смывает? Ну всё, Дэн, бери трубку».
+- «Я больше никогда не буду откладывать уборку. До следующей уборки».
+
+Avoid explicit bodily detail. The joke should come from the task, disgust reaction, and broken mechanism.
+
+======================================================================
+19. BAMBU LAB 3D PRINTER REPAIR MINIGAME
+======================================================================
+
+The workshop contains a Bambu Lab 3D printer and filament spools. The printer is a central interactive prop and should be recognizable as a modern enclosed desktop 3D printer, without copying protected marketing artwork beyond what is necessary to depict the user-specified device.
+
+The printer often fails because Bamboul tries to use the last bit of filament or forces a jammed strand through the filament path.
+
+The user supplied this story pattern as a source of dialogue and minigame inspiration:
+
+«Весь зелёный, короче, наебнул принтер.
+От своей жадности решил добить весь зелёный прямо в идеал, его хватило.
+Но он с катушки вылез, и как раз его, знаешь, как хватило?
+То, что, блядь, он в этой трубке застрял, в этом коробке, где хранятся катушки.
+Там система, она толкает пруток, и он не туда, не сюда — всё, он в трубке застрял.
+Начинает читать, либо, короче, надо трубку как-то отсоединять, протаскивать, проталкивать другим прутком вперёд,
+либо как-то с этой печатающей головки вытягивать.
+Хуй его знает».
+
+Use this as the inspiration for a rambling, frustrated Bamboul monologue. Do not merely repeat it verbatim every time. Create multiple variations and context-sensitive lines.
+
+Minigame structure:
+1. Player notices a failed print or error message.
+2. Bamboul inspects the printer.
+3. The printer displays a jam or filament-feed error.
+4. Player identifies the filament path.
+5. Player selects a reasonable repair action.
+6. Player disconnects or opens the appropriate tube/cover through an interactive step.
+7. Player tries to clear the jam using a guided sequence.
+8. A badly chosen action may waste time or trigger a harmless comedic setback.
+9. Player rethreads or reloads the filament.
+10. Player runs a test feed.
+11. Printer returns to a working state.
+
+Possible interaction mechanics:
+- Click/tap or select the tube that is blocked.
+- Choose between pulling, pushing, or releasing a connector, with hints.
+- Rotate or align a component.
+- Press and hold to feed filament while watching progress.
+- Stop before a marked failure threshold.
+- Reassemble the path and test it.
+
+Do not require detailed real-world dangerous repair procedures. This is a fictional, simplified game puzzle. Provide visual cues, labels, and a reset/recovery option.
+
+Example lines:
+- «Весь зелёный, блядь. Я хотел использовать катушку до последнего — ну и использовал. До последнего нервного импульса».
+- «Он застрял в трубке. Не туда, не сюда. Прямо как я в жизни».
+- «Система толкает пруток, а пруток решил стать недвижимостью».
+- «Так, вытягивать? Проталкивать? Читать инструкцию? Последнее звучит опасно».
+- «Дэн, у тебя есть пять минут, чтобы доказать, что ты мой брат, а не декоративный родственник».
+- «Я нажал “продолжить”, потому что надеялся на чудо. Чудо посмотрело на меня и вышло из чата».
+- «Катушка закончилась на самом интересном месте. Как сериал, только за мои деньги».
+- «Блядь, я напечатал три часа ради пластиковой кляксы с характером».
+- «Не трогай ничего. Я уже тронул всё, теперь надо понять, что именно я сломал».
+- «Если сейчас тестовая подача пройдёт, я клянусь больше никогда… Ладно, не буду врать».
+- «Принтер снова работает. Запишите дату. Технологический прогресс победил БамбулЯ на один раунд меньше».
+
+The minigame must have clear feedback, a functional state machine, animations for opening covers/tubes where practical, sound cues, and a completion result that updates the task system.
+
+======================================================================
+20. DAN: BROTHER AND REPAIR SUPPORT
+======================================================================
+
+Dan is Bamboul's brother and the person Bamboul calls when the printer or other equipment breaks.
+
+Dan may appear via phone dialogue, a call interface, or an in-world cameo if appropriate to the level design.
+
+Dan should have a distinct voice:
+- More practical than Bamboul.
+- Dry, sarcastic, impatient, but helpful.
+- Familiar sibling banter.
+- Occasional disbelief at Bamboul's choices.
+- Short, useful hints during repair puzzles.
+
+Example exchanges:
+Bamboul: «Дэн, у меня принтер опять сдох».
+Dan: «Он сдох или ты опять решил, что инструкция — это для слабых?»
+Bamboul: «Там пруток застрял».
+Dan: «Какой пруток, где застрял и что ты уже сломал?»
+Bamboul: «Пока ничего».
+Dan: «То есть ты ещё не начал чинить. Отлично. Ничего не трогай».
+
+Additional lines:
+- «Я тебе сейчас объясню по телефону, но ты сначала перестань нажимать всё подряд».
+- «Бамбуль, почему у тебя любой бытовой прибор проходит три стадии: покупка, надежда, звонок мне?»
+- «Сфоткай, что у тебя там. Нет, не своё лицо. Принтер».
+- «Проверь, что ты реально выбрал нужную трубку, а не просто самую подозрительную».
+- «Если оно работает — не трогай. Это правило придумали конкретно для тебя».
+- «Я могу приехать, но за каждый сломанный винт ты мне должен шаурму».
+- «У тебя не ремонт, у тебя интерактивный квест по последствиям решений».
+
+Calls to Dan should not be available for every trivial action unless that is an intentional joke. Use cooldowns or limited hints if needed. If Dan gives a hint, the hint must correspond to the actual puzzle state.
+
+======================================================================
+21. BAMBoul'S PERSONALITY AND DIALOGUE SYSTEM
+======================================================================
+
+All in-game dialogue must be in Russian by default.
+
+Bamboul's style:
+- Casual spoken Russian.
+- Profanity used for emphasis and comic rhythm.
+- Self-deprecating remarks.
+- Lazy rationalizations.
+- Dramatic overreaction to minor chores.
+- Chaotic explanations when something breaks.
+- Memes and absurd metaphors.
+- Short reactions during movement.
+- Longer rambling monologues during minigames.
+- Different reactions for success, failure, interruption, and procrastination.
+
+Do not make every line a generic phrase containing “блядь”. Profanity should support rhythm and personality rather than replace writing.
+
+Create a contextual dialogue system with categories:
+- Idle.
+- Movement.
+- Entering a room.
+- Approaching a dirty object.
+- Starting a chore.
+- Procrastinating.
+- Cleaning progress.
+- Completing a chore.
+- Making a mistake.
+- Tool malfunction.
+- Refrigerator opened.
+- Rotten food removed.
+- Faucet turned on.
+- Faucet repaired.
+- Toilet inspected.
+- Toilet cleaned.
+- Flush repaired.
+- Printer error.
+- Printer repair step.
+- Printer repair success/failure.
+- Landlord phone call.
+- Dan phone call.
+- Low time remaining.
+- High cleanliness.
+- Low cleanliness.
+- Player repeatedly attempts the same failed action.
+- Player stands idle while the timer runs.
+- Victory and failure endings.
+
+Each category needs multiple lines. Use weighted random selection, cooldowns, state-based filters, and a history buffer to avoid repeating the same line too frequently.
+
+The dialogue system must:
+- Display Russian text cleanly in the UI.
+- Support line breaks and punctuation.
+- Keep text readable on mobile.
+- Avoid overlapping dialogue panels.
+- Queue or replace barks according to priority.
+- Prioritize important landlord calls over ordinary idle comments.
+- Allow critical instructions to remain visible long enough.
+- Support optional subtitles for sound cues.
+- Trigger dialogue from actual game events, not random unrelated timers.
+
+At minimum, create a substantial dialogue library with at least:
+- 20 idle/procrastination lines.
+- 15 garbage lines.
+- 15 vacuuming lines.
+- 15 mopping lines.
+- 15 refrigerator lines.
+- 15 faucet lines.
+- 15 toilet lines.
+- 20 printer lines.
+- 15 landlord lines.
+- 15 Dan lines.
+- 15 low-timer/panic lines.
+- 15 success/failure reactions.
+
+These are minimum targets. Prioritize quality, context, and variety over repetitive filler.
+
+More sample Bamboul dialogue:
+- «Сейчас начну. Я просто сначала подготовлюсь к тому, чтобы начать».
+- «Уборка — это когда ты перемещаешь грязь в новое место и называешь это прогрессом».
+- «Мне нужен план. План должен включать пункт “не паниковать”. Уже провал».
+- «Я не избегаю ответственности. Я даю ей время проявить себя».
+- «Хозяин едет, а я тут живу в музее собственных решений».
+- «Так, пять минут работаю, двадцать минут смотрю на результат. Баланс».
+- «Почему у каждой вещи есть своё место, а у меня нет желания туда её положить?»
+- «Сейчас сделаю быстро. Фраза, после которой обычно начинается катастрофа».
+- «Это не бардак, это открытая система хранения».
+- «Я бы убрался, но квартира явно не готова к таким переменам».
+- «Если я закрою дверь, проблема перейдёт в другую комнату. Научный подход».
+- «Может, хозяин тоже ленивый и не заметит? Так, это уже стратегия уровня бог».
+- «Надо было убираться вчера. Вчерашний я, конечно, тот ещё мудак».
+- «Я в шаге от порядка. Правда, шаг в другую сторону».
+- «Спокойно. Паника отнимает время. А ещё уборка. Всё отнимает время».
+- «Я не проигрываю. Я создаю альтернативный финал».
+- «В квартире есть свет в конце тоннеля. Это лампа над горой мусора».
+- «Щас всё будет. Не знаю что, но будет».
+- «Сначала уберу самое заметное. То есть себя отсюда».
+- «Я чувствую, как взрослая жизнь стучится в дверь. Это хозяин. У него ключи».
+
+Use this style as inspiration, but write additional original lines for all categories and connect them to the relevant events.
+
+======================================================================
+22. DIALOGUE PATTERNS AND EVENT REACTIONS
+======================================================================
+
+Implement event-driven dialogue patterns, not only a list of random strings.
+
+Examples:
+
+PATTERN A — APPROACHING A TASK
+Trigger: Player enters range of a dirty object.
+Sequence:
+1. Show a short contextual line.
+2. Display interaction prompt.
+3. If player walks away, optionally trigger a procrastination comment after a cooldown.
+Example:
+«А, вот и ты, моя нерешённая проблема. Может, завтра?»
+
+PATTERN B — PROCRASTINATION
+Trigger: Player stays idle near a task while the countdown continues.
+Rules:
+- Do not fire continuously.
+- Use cooldowns.
+- Escalate only after several intervals.
+Example progression:
+«Щас начну».
+Later: «Я начал думать о том, чтобы начать».
+Later: «У меня уже устали мысли, а я даже не встал».
+
+PATTERN C — FAILURE
+Trigger: Player selects an incorrect repair action.
+Sequence:
+1. Immediate visual/audio feedback.
+2. Bamboul reacts.
+3. Provide a useful clue if repeated failure occurs.
+Example:
+«Ну конечно. Я нажал на единственную кнопку, которая ничего не решает».
+
+PATTERN D — PROGRESS
+Trigger: Cleaning progress crosses a threshold.
+Example:
+«О, тут даже пол существует. Я думал, он легенда».
+
+PATTERN E — TASK COMPLETION
+Trigger: Task reaches completed state.
+Sequence:
+1. Play success animation.
+2. Update checklist and cleanliness meter.
+3. Trigger a contextual line.
+4. Play a distinct completion sound.
+Example:
+«Готово. Я теперь почти человек. Почти — ключевое слово».
+
+PATTERN F — LANDLORD PRESSURE
+Trigger: Timer crosses configured thresholds.
+Example thresholds: 5 minutes, 2 minutes, 1 minute, 30 seconds, arrival.
+Each threshold should have different dialogue and UI feedback. Make these thresholds configurable.
+
+PATTERN G — PRINTER CHAOS
+Trigger: Printer error or incorrect action.
+Example:
+«Я хотел распечатать держатель. Получил пластиковое доказательство своей самоуверенности».
+
+PATTERN H — INTERACTION SPAM
+Trigger: Player repeatedly presses an unavailable action.
+Response:
+- Show a short cooldown-limited comment.
+- Do not spam the dialogue queue.
+- Give a clear explanation of what is needed.
+
+PATTERN I — LANDLORD ARRIVES
+Trigger: Timer reaches zero.
+Evaluate the actual room state and choose an ending with unique dialogue and animation.
+
+======================================================================
+23. AUDIO AND FEEDBACK
+======================================================================
+
+Create or integrate appropriate audio for:
+- Footsteps on different surfaces.
+- Jump and landing if applicable.
+- Garbage pickup.
+- Garbage bag movement.
+- Vacuum motor.
+- Mop swishes and bucket sounds.
+- Refrigerator opening/closing.
+- A disgust reaction.
+- Faucet howl and normal water.
+- Toilet cleaning and successful flush.
+- Printer motor, error beep, filament feed and successful test.
+- Wall phone ringing.
+- Landlord voice or call tone.
+- Dan phone call.
+- UI interaction.
+- Task completion.
+- Timer urgency.
+- Ending stingers.
+
+If voice acting is available, use it as a bonus, not as a reason to delay core gameplay. Text dialogue must work even without voice acting.
+
+Do not use ear-piercing volume. Include master/music/SFX volume controls if practical. Audio events must correspond to actual gameplay states.
+
+Use original or properly licensed sounds. Avoid ripping audio from other games.
+
+======================================================================
+24. UI, CONTROLS, DESKTOP AND ANDROID
+======================================================================
+
+The game must be playable on PC and Android.
+
+Desktop:
+- A/D or Left/Right for movement.
+- Space for jump if jumping exists.
+- E or a clearly documented key for interaction.
+- Optional mouse support for menus and minigames.
+- Escape for pause/menu.
+- Do not bind the same key to conflicting actions.
+
+Android:
+- Responsive touch controls.
+- Left/right movement control or a virtual joystick.
+- Jump button if applicable.
+- Large context-sensitive action button.
+- Additional minigame controls only when needed.
+- Buttons must be comfortably tappable and not overlap essential content.
+- The UI must adapt to landscape and portrait if both are supported, but prioritize landscape for platforming.
+- Avoid requiring a physical keyboard.
+- Provide clear pressed/disabled states.
+- Avoid accidental page scrolling or browser gestures in a web build where the platform permits suppressing them.
+
+All visible controls must have actual callbacks connected to gameplay. No decorative or inert buttons.
+
+Make the interface scale correctly across screen sizes and aspect ratios.
+
+Required UI:
+- Main menu.
+- New game / continue if save support exists.
+- Pause menu.
+- Settings.
+- Countdown.
+- Cleanliness/progress indicator.
+- Task checklist.
+- Contextual interaction prompt.
+- Dialogue panel.
+- Minigame panel.
+- Success/failure results.
+- Optional subtitles and volume controls.
+
+Fullscreen:
+- Implement fullscreen where supported by the engine and platform.
+- On browsers, use the supported fullscreen API through the framework; explain if a user gesture is required.
+- On Android native builds, use the correct immersive/fullscreen configuration where appropriate.
+- Do not claim that fullscreen works on every browser if the platform restricts it.
+
+Save/load:
+- Save important progress and settings if the game structure supports it.
+- Ensure the save system cannot restore an impossible or contradictory combination of object states.
+
+======================================================================
+25. VISUAL AND GAMEPLAY STATE CONSISTENCY
+======================================================================
+
+All visual changes must reflect actual game state.
+
+Examples:
+- A garbage pile disappears only after being collected.
+- A clean floor looks visibly different from a dirty floor.
+- The refrigerator remains cleaned after completion.
+- The faucet stops howling after a successful repair.
+- The toilet flushes after the button repair.
+- The printer error clears only after its repair steps are completed.
+- The task checklist updates from the same authoritative state as the world objects.
+- The cleanliness meter is calculated from actual tasks, not an arbitrary animation.
+- The landlord ending evaluates the actual apartment state.
+- The timer does not reset unexpectedly.
+- The dialogue reacts to the correct state.
+
+Avoid duplicated state variables that can contradict one another. Use a clear central game-state model or event system.
+
+======================================================================
+26. ENGINE AND ARCHITECTURE DECISIONS
+======================================================================
+
+Use the existing engine unless there is a compelling technical reason to migrate.
+
+If Godot 4 is used, consider:
+- CharacterBody2D or an appropriate 3D equivalent.
+- Camera2D.
+- Node2D / Sprite2D.
+- TileMapLayer or modular scenes.
+- Area2D for interaction zones.
+- AnimationPlayer / AnimatedSprite2D / AnimationTree as appropriate.
+- Light2D and CanvasModulate for suitable 2D lighting.
+- Shaders and normal maps where supported.
+- AudioStreamPlayer nodes.
+- Resource-based dialogue/task data.
+- Signals for event-driven interaction.
+- Export presets for desktop and Android.
+
+If Unity is used, use its appropriate scene, prefab, animation, physics, render pipeline, UI, input, and build systems.
+
+If Unreal is used, use appropriate actors, components, materials, lighting, animation blueprints, input mapping, and packaging.
+
+For a browser game, use the current framework if it can support the project robustly. Ensure that rendering, controls, audio, fullscreen, and mobile behavior are compatible with the browser and device.
+
+Do not force a particular technology just because it appears in this prompt. Choose a practical implementation that fits the existing project, then document the decision.
+
+======================================================================
+27. PERFORMANCE AND QUALITY PROFILES
+======================================================================
+
+Provide desktop and Android quality profiles where supported.
+
+Desktop priorities:
+- Detailed materials.
+- Higher-quality shadows.
+- More particles.
+- Better lighting.
+- High-resolution assets where useful.
+- Stable frame pacing.
+
+Android priorities:
+- Reduced overdraw and transparency.
+- Efficient texture memory.
+- Controlled shadow cost.
+- Fewer particles.
+- Batching where practical.
+- Resolution scaling if needed.
+- Stable input responsiveness.
+
+Aim for 60 FPS on capable desktop hardware and stable 30–60 FPS on supported Android devices. Treat this as a target to measure, not a guaranteed result.
+
+Profile CPU/GPU time, draw calls, memory, texture sizes and frame pacing where tools allow.
+
+Do not maximize every setting blindly. If an effect is too expensive, implement a cheaper alternative that preserves the visual intent.
+
+======================================================================
+28. IMPLEMENTATION MILESTONES
+======================================================================
+
+Milestone 1 — Audit and baseline
+- Inspect project and assets.
+- Run current build.
+- List defects and working systems.
+- Identify the photo input and reference image.
+- Establish launch/test instructions.
+
+Milestone 2 — Core architecture
+- Establish world scale.
+- Implement player controller and collision.
+- Create room transitions and camera.
+- Create world/object state model.
+- Implement input abstraction for desktop and Android.
+
+Milestone 3 — Visual proof-of-quality room
+Build one complete playable room containing:
+- Actual floor and walls.
+- Properly scaled protagonist.
+- Furniture and an interactive object.
+- Multiple parallax layers.
+- Foreground occlusion.
+- At least one local light.
+- Distinct materials.
+- Camera movement.
+- Real collision and interaction.
+
+Capture and inspect the actual running scene. Fix issues before expanding.
+
+Milestone 4 — Character pipeline
+- Process user photo.
+- Create model/sprites.
+- Create animation states.
+- Validate character scale and pivots.
+- Integrate in-world and test.
+
+Milestone 5 — Complete apartment
+- Build hallway, living room, kitchen, bathroom and workshop.
+- Create modular props and coherent layout.
+- Add collision and interaction zones.
+- Add visual clutter and environmental storytelling.
+
+Milestone 6 — Gameplay systems
+- Timer and landlord phone.
+- Garbage collection.
+- Vacuum.
+- Mop.
+- Refrigerator cleaning.
+- Faucet repair.
+- Toilet cleaning and repair.
+- Printer repair.
+- Dan calls.
+- Task tracking and endings.
+
+Milestone 7 — Dialogue and audio
+- Implement event-driven Russian dialogue.
+- Add varied line pools.
+- Add audio and feedback.
+- Verify cooldowns and priorities.
+
+Milestone 8 — UI and multiplatform support
+- Menus, prompts, checklist, timer, minigames.
+- Desktop controls.
+- Android touch controls.
+- Fullscreen and responsive layouts.
+- Settings and save state if supported.
+
+Milestone 9 — Integration and polish
+- Test all room transitions.
+- Test every interactable.
+- Tune lighting and materials.
+- Tune character animations and scale.
+- Fix clipping, z-order and parallax defects.
+
+Milestone 10 — QA and delivery
+- Run all acceptance tests.
+- Produce actual screenshots from the running build.
+- Build available target packages.
+- Document any blocked build or untested device.
+- Deliver the project and clear instructions.
+
+Do not skip directly to a full-apartment mockup. Validate one polished, playable room first.
+
+======================================================================
+29. REQUIRED QA AND ACCEPTANCE TESTS
+======================================================================
+
+PARALLAX:
+- Move the camera through a complete room.
+- Confirm each layer moves at the intended rate.
+- Confirm no gaps or visible layer edges.
+- Confirm gameplay objects remain aligned with collisions.
+- Confirm foreground objects occlude the character correctly.
+- Confirm transitions between rooms preserve depth.
+
+CHARACTER:
+- Compare the character against a doorway, counter, refrigerator, toilet and workbench.
+- Confirm plausible adult human scale.
+- Confirm no scale changes across rooms.
+- Confirm animation frames share the same baseline and pivot.
+- Confirm feet stay grounded.
+- Confirm hands align with interaction points.
+- Confirm the face remains recognizable from the supplied photo.
+- Confirm character readability at desktop and mobile camera scales.
+
+MOVEMENT:
+- Walk across all rooms.
+- Test edges, walls, doors, stairs/platforms if present.
+- Test collision against large furniture.
+- Confirm no softlocks or falling through the floor.
+- Test interaction distance and facing direction.
+
+CLEANING:
+- Collect garbage and confirm world state changes.
+- Vacuum dirt and confirm progress.
+- Mop dirty areas and confirm the surface changes.
+- Confirm repeated actions do not award infinite progress.
+- Confirm task completion persists correctly.
+
+MINIGAMES:
+- Open and clean the refrigerator.
+- Repair and test the faucet.
+- Clean the toilet and repair the flush.
+- Trigger the printer jam.
+- Complete printer repair and test feed.
+- Trigger Dan support/hints.
+- Confirm failed steps give feedback and allow recovery.
+
+PHONE/TIMER:
+- Trigger landlord calls.
+- Verify correct dialogue priorities.
+- Verify countdown thresholds.
+- Verify timer reaches arrival.
+- Verify ending is based on actual progress.
+- Verify pausing follows the defined timer rule.
+
+DIALOGUE:
+- Confirm Russian text renders correctly.
+- Confirm no dialogue overlaps critical controls.
+- Confirm contextual lines match actual events.
+- Confirm cooldowns prevent spam.
+- Confirm lines do not repeat too frequently.
+- Confirm landlord and Dan have distinct voices.
+
+UI/INPUT:
+- Click/tap every visible button.
+- Test keyboard controls.
+- Test touch controls.
+- Test menus and pause.
+- Test fullscreen where supported.
+- Test multiple aspect ratios.
+- Confirm touch controls do not cover key gameplay objects.
+- Confirm the game works without a physical keyboard on Android.
+
+PERFORMANCE:
+- Run the actual build.
+- Record observed frame rate and platform.
+- Check for major stutters, memory issues and long loading.
+- Reduce expensive effects if necessary.
+- Do not fabricate test results.
+
+A task is not complete merely because code exists. It is complete when it works in the running game and has been tested.
+
+======================================================================
+30. FINAL DELIVERABLES
+======================================================================
+
+Deliver:
+1. A runnable, playable game project.
+2. Source code and assets organized clearly.
+3. A recognizable photo-based protagonist model or sprite system.
+4. A functional animation set.
+5. Independently created supporting characters and environment assets.
+6. A connected apartment level.
+7. A true multilayer parallax/depth system.
+8. Materials, lighting, shadows and selective reflections.
+9. Character/world scale validation.
+10. Functional cleaning tasks and minigames.
+11. Landlord phone and countdown.
+12. Dan call/support system.
+13. A substantial Russian dialogue library with contextual event triggers.
+14. Working desktop and Android controls where supported.
+15. Build and launch instructions.
+16. Debug tools for collision, scale, parallax and interaction zones.
+17. Actual screenshots from the running game.
+18. A QA report stating what was tested, what passed, what failed, and what remains incomplete.
+19. Any available desktop and Android builds, with honest notes about platform limitations.
+
+Do not deliver only:
+- A concept document.
+- A prompt for another AI.
+- A static background image.
+- A screenshot collage.
+- A character model without animation.
+- A UI with nonfunctional buttons.
+- A beautiful room that the player cannot explore.
+- A list of unimplemented features.
+
+======================================================================
+31. FINAL EXECUTION INSTRUCTIONS
+======================================================================
+
+First inspect the current project and all supplied assets, then begin implementation.
+
+Use subagents where available, with clear workstream ownership and frequent integration.
+
+Preserve the established BAMBOUL concept, Russian-language humor, landlord countdown, dirty apartment, broken howling faucet, rotten refrigerator, garbage, vacuuming, mopping, dirty toilet with broken flush button, Bambu Lab filament-jam minigame, and Dan as the brother who helps with repairs.
+
+The user will provide a photograph of the protagonist. Build the main character from that photograph and create a complete, consistent animation set. Model or create all other characters and environment assets yourself, using original or properly licensed assets.
+
+Make the character correctly proportioned to the apartment. A plausible adult human must look plausible beside a real-sized door, counter, refrigerator, toilet and printer workbench. Keep scale, pivot and floor contact consistent in every animation and room.
+
+The graphics must be cinematic and detailed, inspired by the supplied reference's lighting, depth, material response, and composition. The background must use a genuine multilayer parallax system and real scene objects. The apartment must be connected and explorable. All controls and gameplay systems must work.
+
+Do not stop after planning. Do not claim unperformed tests. Do not hide unfinished systems behind a screenshot. Build, run, inspect, fix, and test.
+
+Start with the audit, then produce one polished playable room to validate the complete visual and gameplay pipeline. After it passes, expand the system to the full game.
+
+The final standard is simple: the user must be able to launch the game, control Bamboul, explore a coherent apartment, see real depth and parallax, interact with the environment, play the minigames, hear/read contextual Russian dialogue, and experience the landlord countdown leading to a real ending.
