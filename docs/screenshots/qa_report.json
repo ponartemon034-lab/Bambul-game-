@@ -4,7 +4,7 @@
    "name": "world built",
    "pass": true,
    "info": {
-    "ms": 2075
+    "ms": 2264
    }
   },
   {
@@ -28,7 +28,7 @@
   {
    "name": "avg frame ms (headless sw render)",
    "pass": false,
-   "info": "68.6"
+   "info": "80.2"
   }
  ],
  "errors": []

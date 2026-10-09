@@ -608,7 +608,7 @@
 
   /* ---------------------------------------------------------------- resize */
   BB.resize = function (canvas, cssW, cssH) {
-    const dprWant = Math.min(window.devicePixelRatio || 1, 2);
+    const dprWant = Math.min(window.devicePixelRatio || 1, 2) * (BB.renderScale || 1);
     let px = cssW * dprWant * cssH * dprWant;
     let dpr = dprWant; if (px > Q.maxPx) dpr = dprWant * Math.sqrt(Q.maxPx / px);
     canvas.width = Math.max(2, Math.round(cssW * dpr)); canvas.height = Math.max(2, Math.round(cssH * dpr));

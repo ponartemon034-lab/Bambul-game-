@@ -193,6 +193,7 @@
     updateCamera(dt);
     BB.t = tGlobal;
     BB.render(g, S, tGlobal, dt);
+    if (BB.gl && BB.gl.on) BB.gl.present();
     if (BB.ui && BB.ui.frame) BB.ui.frame(dt, tGlobal);
   }
   BB.start = () => { if (running) return; running = true; requestAnimationFrame(frame); };
@@ -226,7 +227,7 @@
     const q = qs.get('q') || (/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) ? 'med' : 'high'); BB.setQuality(q);
     BB.autoQ = !qs.get('q') && (!BB.CFG || !BB.CFG.quality || BB.CFG.quality === 'auto'); AQ.step = q === 'high' ? 0 : q === 'med' ? 1 : 2;
     if (qs.has('debug')) BB.debug.on = true;
-    BB.fit(); addEventListener('resize', BB.fit); addEventListener('orientationchange', () => setTimeout(BB.fit, 200));
+    BB.fit(); if (BB.gl) { const on = !BB.CFG || BB.CFG.enhance !== false; if (!/low/.test(q) || qs.get('enhance')) BB.gl.enable(cv, on && qs.get('enhance') !== '0'); BB.fit(); } addEventListener('resize', BB.fit); addEventListener('orientationchange', () => setTimeout(BB.fit, 200));
     const bar = $('#loadBar'), txt = $('#loadTxt');
     await BB.buildWorld(p => { if (bar) bar.style.width = (p * 100 | 0) + '%'; });
     hero = (BB.char && BB.char.create) ? BB.char.create('bamboul') : placeholderHero();

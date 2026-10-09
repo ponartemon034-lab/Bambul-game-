@@ -51,3 +51,6 @@ The idle sprite is cut at load time into head / torso base (arms inpainted) / tw
 
 ## Update: exposure pass
 Bath (and every room) was overexposed (4-5 % of pixels clipped). Fixes: bath lights/blooms/ambient reduced, weaker bloom + cones + floor light pools, global exposure trim after the lightmap. Measured clipped pixels (>235 luma) per room after the fix: 0.1-0.5 %, mean luma 73-86.
+
+## Update: WebGL image enhancement (js/post.js)
+Optional post pass (Settings -> "Усиление картинки", on by default, off with ?enhance=0): edge-aware anti-aliasing, contrast-adaptive sharpening, local contrast, lens chromatic aberration, filmic curve, dithering; supports BB.renderScale < 1 (upscaling). This imitates the visible effect only; it is NOT NVIDIA DLSS (needs RTX hardware, motion vectors and depth). Falls back silently to the plain 2D canvas when WebGL is missing. Checked on screenshots with software WebGL.
