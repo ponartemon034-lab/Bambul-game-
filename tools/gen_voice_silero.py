@@ -6,8 +6,7 @@ torch.set_num_threads(4)
 lines = json.load(open(sys.argv[1])); out = 'assets/voice'; os.makedirs(out, exist_ok=True)
 model = torch.package.PackageImporter('/tmp/silero/v4_ru.pt').load_pickle('tts_models', 'model'); model.to('cpu')
 SPK = {'bamboul': 'eugene', 'dan': 'aidar', 'landlord': 'aidar'}
-FX = {'bamboul': 'asetrate=48000*0.97,aresample=24000,atempo=1.03', 'dan': 'asetrate=48000*1.05,aresample=24000,atempo=0.95,highpass=f=70',
-      'landlord': 'asetrate=48000*0.82,aresample=24000,atempo=1.22,acompressor=threshold=0.1:ratio=4,volume=1.6,alimiter=limit=0.95'}
+FX = {'bamboul': 'asetrate=48000*1.2,aresample=24000,atempo=0.833', 'dan': 'asetrate=48000*1.04,aresample=24000,atempo=0.96', 'landlord': 'asetrate=48000*0.88,aresample=24000,atempo=1.136,acompressor=threshold=0.1:ratio=3'}
 ONES = 'ноль один два три четыре пять шесть семь восемь девять десять одиннадцать двенадцать тринадцать четырнадцать пятнадцать шестнадцать семнадцать восемнадцать девятнадцать'.split()
 TENS = 'x x двадцать тридцать сорок пятьдесят шестьдесят семьдесят восемьдесят девяносто'.split()
 def num(n):
@@ -22,7 +21,7 @@ def clean(t):
     return t
 def norm(t): return re.sub(r'\s+', ' ', t.strip().lower().replace('ё', 'е'))
 def key(who, t): return hashlib.sha1((who + '|' + norm(t)).encode()).hexdigest()[:12]
-PROS = {'tired': ('low', 'slow', -2), 'grumble': ('low', 'medium', -1), 'annoyed': ('medium', 'fast', 0), 'angry': ('high', 'fast', 2), 'surprise': ('x-high', 'fast', 1), 'relief': ('high', 'medium', 0), 'panic': ('high', 'x-fast', 2), 'dry': ('medium', 'medium', 0)}
+PROS = {'tired': ('medium', 'slow', -1), 'grumble': ('medium', 'medium', 0), 'annoyed': ('high', 'fast', 0), 'angry': ('high', 'fast', 2), 'surprise': ('x-high', 'fast', 1), 'relief': ('high', 'medium', 0), 'panic': ('high', 'x-fast', 2), 'dry': ('medium', 'medium', 0)}
 def emo_of(l):
     e = l.get('emo')
     if e in PROS: return e

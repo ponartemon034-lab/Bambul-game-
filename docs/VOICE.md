@@ -1,6 +1,6 @@
 # Voice system (Bamboul, landlord, Dan)
 
-**Model:** Silero TTS v4 (Russian), offline, CPU. Speakers: `eugene` (Bamboul), `aidar` (Dan, landlord - pitch/tempo-shifted with ffmpeg; the landlord is lower, gruffer and compressed). Piper (`tools/gen_voice.py`) is kept as an alternative generator.
+**Model:** Silero TTS v4 (Russian), offline, CPU. Speakers: `eugene` (Bamboul), `aidar` (Dan, landlord). Pitch is kept in the medium male range (median F0: Bamboul ~115 Hz, Dan ~129 Hz, landlord ~136 Hz, measured with tools/f0.py). Background music is disabled in the game. Piper (`tools/gen_voice.py`) is kept as an alternative generator.
 
 **Pipeline (all pre-generated, nothing is synthesized at runtime):**
 1. `node tools/collect_lines.js` - runs the game in Chromium and dumps every spoken line (pools of `BB.dlg` + all scripted calls under many states + minigame texts) with speaker and emotion tag -> `/tmp/lines.json` (1001 lines).

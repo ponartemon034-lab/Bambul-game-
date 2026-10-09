@@ -460,7 +460,7 @@
     let musTimer = null;
     function music(on, intensity) {
       if (intensity != null) M.tI = clamp(+intensity || 0, 0, 1);
-      if (on === false) { musicStop(); return; }
+      if (on === false || !offline) { musicStop(); return; }          // background music is disabled in the game (offline render for tests only)
       if (on == null || M.on) return;
       if (!offline && C.state !== 'running') { M.pending = true; return; }
       M.pending = false; M.on = true; M.I = M.tI; M.step = 0; M.next = C.currentTime + .08; M.key = 0;
