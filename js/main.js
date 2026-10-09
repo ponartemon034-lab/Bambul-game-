@@ -174,6 +174,9 @@
   function adaptQuality(rawMs, now) {
     if (!BB.autoQ || document.hidden || BB.paused) return;
     AQ.ema = AQ.ema * .96 + Math.min(rawMs, 120) * .04;
+    if (now - AQ.t > 3500 && AQ.ema > 34 && BB.gl && BB.gl.on && (BB.renderScaleWanted || 1) > .68) { // dynamic resolution first (cheap, keeps effects)
+      AQ.t = now; AQ.ema = 22; BB.renderScaleWanted = Math.max(.65, (BB.renderScaleWanted || 1) - .15); BB.renderScale = BB.renderScaleWanted; BB.fit && BB.fit(); console.info('[quality] render scale ->', BB.renderScale.toFixed(2)); return;
+    }
     if (now - AQ.t > 3500 && AQ.ema > 34 && AQ.step < 2) { AQ.step++; AQ.t = now; AQ.ema = 20; BB.setQuality(AQ.order[AQ.step]); BB.fit && BB.fit(); console.info('[quality] auto ->', AQ.order[AQ.step]); }
   }
   function frame(now) {
