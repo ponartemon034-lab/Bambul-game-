@@ -13,7 +13,7 @@
   const safe = (f, d) => { try { return f(); } catch (e) { console.error('[ui]', e); return d; } };
 
   /* ------------------------------------------------------------------ CFG */
-  const CFG_DEF = { vol: .7, music: true, sfx: true, musicVol: .8, sfxVol: 1, censor: false, subs: true, touch: false, quality: 'auto', realHero: true, debug: false, muted: false };
+  const CFG_DEF = { vol: .7, music: true, sfx: true, musicVol: .8, sfxVol: 1, censor: false, subs: true, touch: false, quality: 'auto', realHero: true, voice: true, debug: false, muted: false };
   let stored = {}; try { stored = JSON.parse(localStorage.getItem('bamboul.cfg') || '{}') || {}; } catch (e) { }
   const CFG = BB.CFG = Object.assign(BB.CFG || {}, CFG_DEF, stored);
   BB.saveCFG = () => { try { localStorage.setItem('bamboul.cfg', JSON.stringify(CFG)); } catch (e) { } };
@@ -290,6 +290,7 @@
     showBub(it); return true;
   }
   function showBub(it) {
+    try { BB.voice && BB.voice.speak(it.text, it.who); } catch (e) { }
     st.bub = it; st.bt = it.dur;
     const phone = it.who === 'dan' || it.who === 'landlord';
     const el = phone ? els.sub : els.bub;
@@ -336,7 +337,7 @@
     els.dlgRib.textContent = phone && who !== 'narr' ? (who === 'landlord' ? 'ТРУБКА · ХОЗЯИН НА ПРОВОДЕ' : 'ТРУБКА · ' + (info.name || '').toUpperCase()) : '';
     els.dlgWho.textContent = L.name || info.name; els.dlgCh.innerHTML = ''; els.dlgCh.classList.remove('show');
     portrait(els.dlgCv, els.dlgLetter, who, L.mood);
-    d.full = cz(typeof L.text === 'function' ? L.text() : L.text || ''); d.typed = 0; d.typing = true; d.shown = -1;
+    d.full = cz(typeof L.text === 'function' ? L.text() : L.text || ''); try { BB.voice && BB.voice.speak(d.full, L.who); } catch (e) { } d.typed = 0; d.typing = true; d.shown = -1;
     $('#dlgSkip', els.dlg).hidden = d.lines.length - d.i < 2 || d.lines.slice(d.i).some(l => l.choices && l.choices.length);
     if (who === 'landlord') sfx('landlordVoice'); else if (who === 'dan') sfx('danVoice');
     renderTyped(true);
@@ -584,6 +585,7 @@
       row('Громкость', slider('vol')), row('Музыка', slider('musicVol')), row('Звуки', slider('sfxVol')),
       row('Запикать мат', toggle('censor'), 'Звёздочки вместо крепких слов'),
       row('Реалистичный герой', toggle('realHero'), 'Выключи — будет мультяшный герой с полным набором поз'),
+      row('Озвучка голосом', toggle('voice', v => { if (!v && BB.voice) BB.voice.stop(); }), 'Реплики вслух голосом браузера/телефона (русский голос должен быть установлен)'),
       row('Субтитры звуков', toggle('subs'), 'Подписи вроде «[звонит телефон]»'),
       row('Сенсорное управление', toggle('touch', v => setTouch(v)), 'Всегда показывать стик и кнопки'),
       row('Показать отладку', toggle('debug', v => { if (BB.debug) BB.debug.on = v; }), 'То же, что F3')
