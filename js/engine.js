@@ -133,15 +133,17 @@
     const W = BB.world; W.objects.length = 0; W.hotspots.length = 0; W.solids.length = 0; W.lights.length = 0; W.rooms.length = 0;
     const total = L.rooms.length + 1; let done = 0;
     const tick = async () => { done++; onProgress && onProgress(done / total); await new Promise(r => setTimeout(r, 0)); };
-    BB.sky = makeSky(); await tick();
+    BB.sky = makeSky(); await TEX.load([...new Set(Object.values(TEXMAP).flatMap(m => [m.wall[0], m.floor[0]]))]).catch(() => { }); await tick();
     for (let i = 0; i < L.rooms.length; i++) {
       const lr = L.rooms[i], def = BB.rooms[lr.id] || { id: lr.id };
       const room = Object.assign({}, def, { id: lr.id, name: lr.name, x0: lr.x0, x1: lr.x1, w: lr.x1 - lr.x0, idx: i });
       room.pad = pad(room, i); room.ambient = def.ambient || { color: [60, 56, 66] };
       const tw = room.w + room.pad.l + room.pad.r; room.tx0 = room.x0 - room.pad.l; room.tw = tw;
       room.wallImg = BB.bake(tw, L.ceilH, (g, w, h) => { BB.defaultWall(g, w, h, room); if (def.wall) def.wall(g, w, h, room); }, { B: Math.min(Q.bake, 1.9) });
+      { const tm = TEXMAP[lr.id]; if (tm && Q.enhance && BB.useTex !== false) { try { TEX.apply(room.wallImg, tm.wall, room.wallImg.B || 1.5); } catch (e) { console.warn('[tex]', e); } } }
       const FD = L.wallZ - L.frontZ; room.FD = FD;
       room.floorImg = BB.bake(tw, FD, (g, w, d) => { BB.defaultFloor(g, w, d, room); if (def.floor) def.floor(g, w, d, room); }, { B: Math.min(Q.bake, 1.5) });
+      { const tm = TEXMAP[lr.id]; if (tm && Q.enhance && BB.useTex !== false) { try { TEX.apply(room.floorImg, tm.floor, room.floorImg.B || 1.5); } catch (e) { console.warn('[tex]', e); } } }
       room.ceilImg = BB.bake(tw, FD, (g, w, d) => { BB.defaultCeil(g, w, d, room); if (def.ceil) def.ceil(g, w, d, room); }, { B: 1 });
       room.objects = (def.objects || []).slice(); room.objects.forEach(o => prepObject(o, room));
       room.lights = (def.lights || []).map(l => Object.assign({ z: 40, y: 200, r: 300, i: 1, color: '255,200,140' }, l, { ax: room.x0 + l.x, room }));
@@ -153,6 +155,29 @@
     BB.built = true;
   };
   BB.roomObj = id => BB.world.rooms.find(r => r.id === id);
+
+
+  /* ------------------------------------------------- photo material layers (CC0 ambientCG textures, assets/tex) */
+  const TEX = BB.tex = { img: {}, ready: false };
+  TEX.load = function (names) {
+    return Promise.all(names.map(n => new Promise(res => { const out = {}; let left = 2; const done = () => { if (!--left) { TEX.img[n] = out; res(); } };
+      ['c', 's'].forEach(k => { const im = new Image(); im.onload = () => { out[k] = im; done(); }; im.onerror = () => { done(); }; im.src = 'assets/tex/' + n + '_' + k + '.jpg'; }); })));
+  };
+  /* spec = [name, tileCm, colorAlpha, shadeAlpha]; blends the albedo + relief shading of a real material over a painted canvas, keeping its alpha (holes) */
+  TEX.apply = function (c, spec, B) {
+    if (!spec || !TEX.img[spec[0]]) return; const t = TEX.img[spec[0]], W = c.width, H = c.height, g = c.getContext('2d'); if (!t.c || !t.s) return;
+    const mask = mk(W, H); mask.getContext('2d').drawImage(c, 0, 0); const sc_ = spec[1] * B / 512;
+    g.save(); g.globalCompositeOperation = 'overlay';
+    for (const [im, a] of [[t.c, spec[2]], [t.s, spec[3]]]) { if (!a) continue; const pat = g.createPattern(im, 'repeat'); try { pat.setTransform(new DOMMatrix().scale(sc_, sc_)); } catch (e) { } g.globalAlpha = a; g.fillStyle = pat; g.fillRect(0, 0, W, H); }
+    g.restore(); g.save(); g.globalCompositeOperation = 'destination-in'; g.drawImage(mask, 0, 0); g.restore();
+  };
+  const TEXMAP = {
+    hall: { wall: ['Plaster007', 80, .5, .75], floor: ['Concrete012', 80, .6, .95] },
+    living: { wall: ['Plaster006', 90, .35, .7], floor: ['Planks037B', 90, .8, .95] },
+    kitchen: { wall: ['Plaster001', 80, .4, .7], floor: ['Concrete034', 90, .55, .95] },
+    bath: { wall: ['Concrete034', 100, .3, .65], floor: ['Tiles052', 60, .5, .9] },
+    work: { wall: ['Concrete012', 90, .45, .75], floor: ['Concrete034', 100, .65, .95] }
+  };
 
   /* ---------------------------------------------- default procedural surfaces */
   BB.defaultWall = function (g, w, h, room) {
