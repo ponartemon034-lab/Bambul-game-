@@ -1,0 +1,34 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><title>props preview</title>
+<style>body{margin:0;background:#2a2622;color:#ddd;font:12px monospace}canvas{display:block}</style></head><body>
+<canvas id="cv"></canvas>
+<script src="../js/engine.js"></script><script src="../js/art.js"></script><script src="../js/props.js"></script>
+<script>
+// ?kinds=trash,cloth  &s=px per cm (default 5)  &w=canvas width  &icons=1
+const Q=new URLSearchParams(location.search);
+const S=+(Q.get('s')||5), W=+(Q.get('w')||1400), kinds=(Q.get('kinds')||BB.props.kinds().join(',')).split(',');
+const cv=document.getElementById('cv'), g=cv.getContext('2d');
+function layout(draw){ // simple wrap layout
+  let x=10,y=10,rowH=0; const pos=[];
+  draw((w,h,label)=>{ if(x+w+14>W){x=10;y+=rowH+22;rowH=0;} const p={x,y:y+14,w,h,label}; x+=w+14; rowH=Math.max(rowH,h+14); pos.push(p); return p; });
+  return y+rowH+30;
+}
+function render(){
+  const items=[];
+  for(const k of kinds){ if(!BB.props.defs[k])continue; const d=BB.props.defs[k];
+    for(const v of (Q.get('v')?[Q.get('v')]:(d.freeVariant?['#e23a3a','#3aa0e2','#9be23a','#f0c020','#e8e8e8','#222']:d.variants)))
+      for(const st of (d.states||['_'])) items.push([k,v,st]); }
+  const need=layout(a=>{ for(const [k,v,st] of items){ const im=BB.props.get(k,v,st); a(Math.max(im.w*S,80),im.h*S,k+':'+v+':'+st); } });
+  cv.width=W; cv.height=need; g.fillStyle='#4a3a2c'; g.fillRect(0,0,W,need);
+  g.fillStyle=A.lg?'':'';
+  let n=0; layout(a=>{ for(const [k,v,st] of items){ const im=BB.props.get(k,v,st); const cw=Math.max(im.w*S,80); const p=a(cw,im.h*S);
+    // floor strip
+    g.fillStyle='rgba(0,0,0,.18)'; g.fillRect(p.x,p.y,cw,im.h*S+4);
+    const fy=p.y+im.oy*S; BB.floorEllipse&&0;
+    g.drawImage(im.img,p.x+cw/2-im.ox*S,p.y,im.w*S,im.h*S);
+    g.strokeStyle='rgba(255,255,0,.35)'; g.beginPath(); g.moveTo(p.x,fy); g.lineTo(p.x+cw,fy); g.stroke();
+    g.fillStyle='#ccc'; g.font='11px monospace'; g.fillText(k+':'+v+(st!=='_'?':'+st:''),p.x,p.y-3); } });
+}
+const A=BB.art; render();
+if(Q.get('icons')){ const y=cv.height; cv.height=y+140; /*redraw*/ render2(y); }
+function render2(y){ const c2=document.createElement('canvas'); }
+</script></body></html>
