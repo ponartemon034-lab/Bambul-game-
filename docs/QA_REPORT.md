@@ -48,3 +48,6 @@ The idle sprite is cut at load time into head / torso base (arms inpainted) / tw
 * Hero: the painted sprites got sharper textures + micro grain/clarity (assets/char, originals kept in assets/char/orig); look unchanged.
 * New auto-quality: if the frame rate stays low in 'auto' quality, bloom/shadows/reflections are switched off step by step (headless software rendering drops to 'low' within seconds).
 * Checked on screenshots in living room, kitchen, bath, workshop; frame time was only measured without a GPU (75-93 ms before auto-downgrade).
+
+## Update: exposure pass
+Bath (and every room) was overexposed (4-5 % of pixels clipped). Fixes: bath lights/blooms/ambient reduced, weaker bloom + cones + floor light pools, global exposure trim after the lightmap. Measured clipped pixels (>235 luma) per room after the fix: 0.1-0.5 %, mean luma 73-86.

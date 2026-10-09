@@ -904,8 +904,8 @@
     partitionFace: '#6f8f8c',
     floorColor: ['#a9b8b5', '#6d8785'],
     gloss: .30,
-    ambient: { color: [96, 118, 126] },
-    ambientNow: (S, t) => { const f = tubeFlicker(t), h = F(S).faucetHowl && !F(S).faucetFixed ? 1 + .08 * Math.sin(t * 40) : 1; return [(86 + 14 * f) * h, (106 + 14 * f) * h, (114 + 14 * f) * h]; },
+    ambient: { color: [80, 98, 106] },
+    ambientNow: (S, t) => { const f = tubeFlicker(t), h = F(S).faucetHowl && !F(S).faucetFixed ? 1 + .08 * Math.sin(t * 40) : 1; return [(72 + 12 * f) * h, (90 + 12 * f) * h, (98 + 12 * f) * h]; },
     wall, floor, ceil,
     objects: [
       // ---- back wall layer (z ~150-158)
@@ -965,12 +965,12 @@
       { id: 'fgSteamB', x: 430, y: 30, z: -62, w: 190, h: 120, shadow: false, bake: () => { }, dyn: dynSteam }
     ],
     lights: [
-      { x: 270, y: 240, z: 40, r: 430, color: '196,232,240', i: 1.0, flicker: .38, bloom: .20 },
-      { x: 118, y: 36, z: 120, r: 120, color: '255,160,80', i: .6, bloom: .3 },
-      { x: 250, y: 205, z: 120, r: 190, color: '224,246,240', i: .6, flicker: .15, bloom: .12 },
-      { x: 425, y: 215, z: 120, r: 230, color: '110,140,220', i: .38, bloom: .10 },
-      { x: 66, y: 164, z: 130, r: 70, color: '255,60,40', i: .35, bloom: .15 },
-      { x: 250, y: 100, z: 70, r: 150, color: '170,225,255', i: .7, flicker: .6, bloom: .2, on: S => !!(F(S).faucetHowl && !F(S).faucetFixed) }
+      { x: 270, y: 240, z: 40, r: 430, color: '196,232,240', i: .66, flicker: .38, bloom: .05 },
+      { x: 118, y: 36, z: 120, r: 120, color: '255,160,80', i: .45, bloom: .08 },
+      { x: 250, y: 205, z: 120, r: 190, color: '224,246,240', i: .42, flicker: .15, bloom: .04 },
+      { x: 425, y: 215, z: 120, r: 230, color: '110,140,220', i: .3, bloom: .04 },
+      { x: 66, y: 164, z: 130, r: 70, color: '255,60,40', i: .3, bloom: .08 },
+      { x: 250, y: 100, z: 70, r: 150, color: '170,225,255', i: .55, flicker: .6, bloom: .08, on: S => !!(F(S).faucetHowl && !F(S).faucetFixed) }
     ],
     hotspots: [
       { id: 'washer', x: 65, r: 55, h: 90 },

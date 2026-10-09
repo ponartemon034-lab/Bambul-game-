@@ -374,7 +374,7 @@
     }
     lg.globalCompositeOperation = 'source-over';
     if (mode === 'full') return lights;
-    g.save(); g.globalCompositeOperation = 'multiply'; g.imageSmoothingEnabled = true; g.drawImage(lm, 0, 0, lw * d, lh * d); g.restore();
+    g.save(); g.globalCompositeOperation = 'multiply'; g.imageSmoothingEnabled = true; g.drawImage(lm, 0, 0, lw * d, lh * d); g.fillStyle = 'rgb(238,238,240)'; g.fillRect(0, 0, V.W, V.H); g.restore();   // + global exposure trim
     // bloom / light shafts
     g.save(); g.globalCompositeOperation = 'lighter';
     for (const l of lights) {
@@ -399,11 +399,11 @@
       // volumetric cone under ceiling lamps
       if (l.cone !== false && l.y >= 175 && l.r >= 180 && l.i > .3) {
         const yb = sy(0, l.z), w = Math.min(l.r * .42, 150) * k, gr = g.createLinearGradient(0, yTop, 0, yb);
-        gr.addColorStop(0, 'rgba(' + l.color + ',' + (.08 * l.i) + ')'); gr.addColorStop(1, 'rgba(' + l.color + ',0)');
+        gr.addColorStop(0, 'rgba(' + l.color + ',' + (.055 * l.i) + ')'); gr.addColorStop(1, 'rgba(' + l.color + ',0)');
         g.fillStyle = gr; g.beginPath(); g.moveTo(x - 6 * k, yTop); g.lineTo(x + 6 * k, yTop); g.lineTo(x + w, yb); g.lineTo(x - w, yb); g.closePath(); g.fill();
       }
       // pool of light on the floor (stronger on glossy floors)
-      if (l.puddle !== false && l.y >= 80 && l.i > .3) BB.floorEllipse(g, l.ax, l.z, Math.min(l.r * .5, 190), Math.min(l.r * .16, 60), 'rgba(' + l.color + ',' + Math.min(.38, .07 + gl * 1.1) * l.i + ')');
+      if (l.puddle !== false && l.y >= 80 && l.i > .3) BB.floorEllipse(g, l.ax, l.z, Math.min(l.r * .5, 190), Math.min(l.r * .16, 60), 'rgba(' + l.color + ',' + Math.min(.22, .05 + gl * .55) * Math.min(1, l.i) + ')');
     }
     g.restore();
   }
@@ -435,8 +435,8 @@
     if (!bloomA || bloomA.width !== bw) { bloomA = mk(bw, bh); bloomB = mk(bw, bh); }
     const a = bloomA.getContext('2d'), b = bloomB.getContext('2d'); if (!('filter' in b)) return;
     a.setTransform(1, 0, 0, 1, 0, 0); a.globalCompositeOperation = 'copy'; a.drawImage(g.canvas, 0, 0, bw, bh);
-    b.setTransform(1, 0, 0, 1, 0, 0); b.globalCompositeOperation = 'copy'; b.filter = 'brightness(.8) contrast(2.3) blur(2.4px)'; b.drawImage(bloomA, 0, 0); b.filter = 'none';
-    g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'lighter'; g.globalAlpha = .28; g.imageSmoothingEnabled = true; g.drawImage(bloomB, 0, 0, cw, ch); g.restore();
+    b.setTransform(1, 0, 0, 1, 0, 0); b.globalCompositeOperation = 'copy'; b.filter = 'brightness(.72) contrast(2.8) blur(2.6px)'; b.drawImage(bloomA, 0, 0); b.filter = 'none';
+    g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'lighter'; g.globalAlpha = .22; g.imageSmoothingEnabled = true; g.drawImage(bloomB, 0, 0, cw, ch); g.restore();
   }
 
   /* ----------------------------------------------------------- reflections */
