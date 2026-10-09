@@ -264,23 +264,33 @@
     const p = inst.pose, st = inst.state, held = inst.held, t = inst.t, k = 1 / HS.px, I = HS.img;
     const cyc = st === 'walk' || st === 'run' || st === 'carry';
     g.save(); const fc = Math.abs(inst.face) < .12 ? .12 * Math.sign(inst.face || 1) : inst.face; g.scale(fc, 1);
-    const draw = (im, ox, oy) => { const w = im.width * k, h = im.height * k; g.drawImage(im, -w / 2 + (ox || 0), -h + (oy || 0), w, h); };
-    if (cyc || st === 'jump' || st === 'fall' || st === 'stumble' || st === 'panic' && false) {
-      let idx = 0; if (cyc) idx = Math.floor((((inst.phase / (2 * Math.PI)) % 1) + 1) % 1 * 7) % 7; else idx = st === 'jump' ? 5 : 3;
-      const im = I['run_' + idx]; draw(im, 0, st === 'jump' || st === 'fall' ? -6 : 0);
-      if (held === 'bag' || held === 'clothes') drawHeld(g, held, 30, -92 + (idx % 2) * 3, p, t);
+    const draw = (im, ox, oy, sc) => { const w = im.width * k * (sc || 1), h = im.height * k * (sc || 1); g.drawImage(im, -w / 2 + (ox || 0), -h + (oy || 0), w, h); };
+    if (st === 'sit') {                                   // sprawled on the sofa: torso thrown back, legs stretched out forward
+      const im = I.idle, w = im.width * k, h = im.height * k, hipY = h * .5, br = S_(t * 1.6) * .012, hip = 38;
+      g.translate(-4, (h - hipY) - hip);
+      const part = (y0, y1, ang, px, py) => { g.save(); g.translate(px, py); g.rotate(ang); g.translate(-px, -py); g.beginPath(); g.rect(-w, -h + y0, w * 2, y1 - y0); g.clip(); g.drawImage(im, -w / 2, -h, w, h); g.restore(); };
+      const hy = -h + hipY + 2;                          // hip height in sprite space
+      part(hipY - 2, h + 4, -1.2 + br, 0, hy);          // legs: swung forward (feet end up on the right)
+      part(-2, hipY + 2, -.78 + br * 2 + S_(t * .7) * .02, 0, hy);   // torso: reclined back
+      if (held) drawHeld(g, held, 18, -86, p, t);
+      g.restore(); return;
+    }
+    if (cyc || st === 'jump' || st === 'fall' || st === 'stumble') {
+      let idx = 0, sc = 1.2;
+      if (cyc) idx = Math.floor((((inst.phase / (2 * Math.PI)) % 1) + 1) % 1 * 5) % 5; else { idx = st === 'jump' ? 4 : 3; sc = 1.15; }
+      const im = I['run_' + idx], bob = cyc ? Math.abs(S_(inst.phase)) * 3 : 0;
+      draw(im, 0, (st === 'jump' || st === 'fall' ? -4 : 0) - bob, sc);
+      if (held === 'bag' || held === 'clothes') drawHeld(g, held, 34, -100 + (idx % 2) * 3, p, t);
     } else {
-      // standing sprite deformed by the pose parameters (lean, crouch, bounce, breathing)
-      const im = I.idle, crouch = clamp(p.crouch, -6, 44), hip = -92;
-      const sy = (1 - crouch / 215) * (1 + (st === 'idle' ? S_(t * 2) * .004 : 0)), sx = 1 + crouch / 520;
-      const lean = clamp(p.lean, -.5, .75) * .85, shake = (st === 'panic' ? S_(t * 40) * 1.2 : 0), hop = p.lift || 0;
-      g.translate(shake, -hop); g.translate(0, hip); g.rotate(lean); g.scale(sx, sy); g.translate(0, -hip);
-      if (st === 'sit') { g.translate(-6, 0); }
-      draw(im, S_(t * .8) * .0, 0);
+      // standing sprite deformed by the pose parameters (lean, crouch, bounce, breathing, weight shift)
+      const im = I.idle, crouch = clamp(p.crouch, -6, 44), hip = -92, idleish = st === 'idle' || st === 'idleBored';
+      const breathe = idleish ? S_(t * 2) * .006 : 0, sy = (1 - crouch / 215) * (1 + breathe), sx = 1 + crouch / 520 - breathe * .5;
+      const lean = clamp(p.lean, -.5, .75) * .85 + (idleish ? S_(t * .9) * .014 : 0), shake = (st === 'panic' ? S_(t * 40) * 1.2 : 0), hop = p.lift || 0;
+      g.translate(shake + (idleish ? S_(t * .9) * .8 : 0), -hop); g.translate(0, hip); g.rotate(lean); g.scale(sx, sy); g.translate(0, -hip);
+      draw(im, 0, 0);
       const hp = handPos(st, p);
       if (held === 'mop' || held === 'vac') drawTool(g, held, p, hp[0], hp[1]);
       else if (held) drawHeld(g, held, hp[0], hp[1], p, t);
-      if (st === 'mop' || st === 'vac') { /* tool is drawn over the legs */ }
     }
     g.restore();
   }
@@ -297,7 +307,7 @@
       const a = 1 - Math.exp(-dt * (cyc ? 40 : 15)); for (const k in tg) inst.pose[k] = inst.pose[k] === undefined ? tg[k] : lerp(inst.pose[k], tg[k], k === 'eye' ? Math.min(1, a * 3) : a);
     };
     inst.draw = function (g, t) {
-      if (kind === 'bamboul' && TOON.ready && !(BB.CFG && BB.CFG.realHero)) return drawToon(inst, g);
+      if (kind === 'bamboul' && TOON.ready && (BB.CFG && BB.CFG.realHero === false)) return drawToon(inst, g);
       if (kind === 'bamboul' && HS.ready) return drawHeroSprite(inst, g);
       const p = inst.pose, held = inst.held, st = inst.state;
       g.save(); g.scale(sc, sc);
