@@ -1,0 +1,27 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="../css/style.css"></head><body>
+<div id="app"><canvas id="cv"></canvas><div id="ui"></div><div id="loading"><div class="loadbox"><h1>demo</h1><div class="loadtrack"><i id="loadBar"></i></div></div></div></div>
+<script src="../js/engine.js"></script><script src="../js/art.js"></script>
+<script>
+const A=BB.art;
+// Minimal stub rooms to exercise perspective, parallax, lights, partitions.
+const mkRoom=(id,wc,fc,lightCol,x)=>BB.defineRoom({id,wallColor:wc,floorColor:fc,gloss:id==='bath'?.3:.1,
+ ambient:{color:[70,62,74]},
+ wall:(g,w,h)=>{A.wallpaper(g,0,0,w,h,{base:wc[0],seed:3});A.skirting(g,w,h);A.wallAO(g,w,h);if(id==='kitchen'){A.hole(g,200,60,120,110)}},
+ floor:(g,w,d)=>{A.planks(g,0,0,w,d,{c1:fc[0],c2:fc[1]})},
+ objects:[
+  {id:'box1',x:150,z:60,w:90,h:90,depth:50,bake:(g,w,h)=>{A.rrect(g,0,0,w,h,4,'#7a5a3a');A.bevel(g,0,0,w,h);A.rect(g,6,6,w-12,h-12,'#6a4a2e')}},
+  {id:'sofa',x:320,z:30,w:220,h:90,depth:90,reflect:.6,bake:(g,w,h)=>{A.rrect(g,0,10,w,h-10,12,'#4d5a3c');A.rrect(g,10,0,w-20,60,10,'#5d6b47')}},
+  {id:'fg',x:200,z:-120,w:30,h:300,blur:2.5,bake:(g,w,h)=>{A.rect(g,0,0,w,h,'#17110d')}},
+ ],
+ lights:[{x:300,y:210,z:20,r:420,color:lightCol,i:1,flicker:.0},{x:120,y:200,z:100,r:240,color:'255,230,190',i:.7}],
+ hotspots:[{id:id+'_spot',x:300,r:60,h:120}]});
+mkRoom('hall',['#6f5d49','#54453a'],['#6a4a30','#3a271a'],'255,196,120');
+mkRoom('living',['#7a5f52','#5a4439'],['#73502f','#3d2a1a'],'255,180,110');
+mkRoom('kitchen',['#8a8f73','#6a6f58'],['#8a7f6a','#4a443c'],'210,225,255');
+mkRoom('bath',['#7fa3a3','#5d8585'],['#9fb0ae','#6f8583'],'200,235,255');
+mkRoom('work',['#6b6b70','#4d4d55'],['#5a5a5f','#33333a'],'140,190,255');
+BB.S=Object.assign({},BB.DEFAULT_S,{mode:'play'});
+</script>
+<script src="../js/main.js"></script>
+</body></html>

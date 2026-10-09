@@ -1,0 +1,13 @@
+/* base shell (owner: UI agent extends this file) */
+:root{color-scheme:dark;--ink:#0b0908;--paper:#efe2c4;--mustard:#d9a93a}
+html,body{height:100%;margin:0;background:var(--ink);color:var(--paper);font-family:'Golos Text',system-ui,'Segoe UI',Roboto,Arial,sans-serif;overflow:hidden;overscroll-behavior:none}
+#app{position:fixed;inset:0;overflow:hidden;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:none}
+#cv{position:absolute;inset:0;width:100%;height:100%;display:block;background:var(--ink)}
+#ui{position:absolute;inset:0;pointer-events:none}
+#ui>*{pointer-events:auto}
+[hidden]{display:none!important}
+#loading{position:absolute;inset:0;background:var(--ink);display:grid;place-items:center;z-index:100}
+.loadbox{text-align:center;width:min(420px,80vw)}
+.loadbox h1{font-family:'Rubik Dirt','Impact',sans-serif;font-weight:400;font-size:64px;margin:0 0 8px;color:var(--mustard);text-shadow:4px 4px 0 #2d3050}
+.loadtrack{height:8px;background:#221d19;border:2px solid #2d3050}
+.loadtrack i{display:block;height:100%;width:0;background:var(--mustard);transition:width .2s}

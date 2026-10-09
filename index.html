@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#0b0908">
+<title>Бамбуль: хозяин едет</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Golos+Text:wght@400;600;800&family=Rubik+Dirt&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+  <canvas id="cv" aria-label="Игра «Бамбуль: хозяин едет»"></canvas>
+  <div id="ui"></div>
+  <div id="loading"><div class="loadbox"><h1>БАМБУЛЬ</h1><p id="loadTxt">Сметаем пыль с декораций…</p><div class="loadtrack"><i id="loadBar"></i></div></div></div>
+</div>
+<!-- engine -->
+<script src="js/engine.js"></script>
+<script src="js/art.js"></script>
+<!-- shared props + rooms -->
+<script src="js/props.js"></script>
+<script src="js/rooms/hall.js"></script>
+<script src="js/rooms/living.js"></script>
+<script src="js/rooms/kitchen.js"></script>
+<script src="js/rooms/bath.js"></script>
+<script src="js/rooms/work.js"></script>
+<!-- characters, audio, text -->
+<script src="js/character.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/dialogue.js"></script>
+<!-- gameplay -->
+<script src="js/tasks.js"></script>
+<script src="js/minigames.js"></script>
+<script src="js/story.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
