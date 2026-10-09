@@ -207,6 +207,53 @@
     if (typeof Image === 'undefined') return; let left = HS.names.length;
     HS.names.forEach(n => { const im = new Image(); im.onload = () => { if (--left === 0) { HS.ready = !!(HS.img.idle && HS.img.idle.width); if (BB.char) BB.char.spritesReady = HS.ready; } }; im.onerror = () => { left--; }; im.src = 'assets/char/hero_' + n + '.png'; HS.img[n] = im; });
   })();
+
+  /* ---- full cartoon animation set (from the second prototype; assets/char/toon, 240x288, feet at (120,280)) ---- */
+  const TOON = { ready: false, img: {}, PX: 1.528, cx: 120, fy: 280, counts: { idle: 4, walk: 8, run: 8, carry: 4, mop: 4, tool: 3, pickup: 2, throw: 2, panic: 4, victory: 2, jump: 3, pant: 1, skid: 1 } };
+  (function loadToon() {
+    if (typeof Image === 'undefined') return; const all = []; for (const k in TOON.counts) for (let i = 0; i < TOON.counts[k]; i++) all.push(k + '_' + i);
+    let left = all.length; all.forEach(n => { const im = new Image(); im.onload = () => { if (--left === 0) TOON.ready = true; }; im.onerror = () => { left--; if (!left) TOON.ready = !!TOON.img.idle_0; }; im.src = 'assets/char/toon/' + n + '.png'; TOON.img[n] = im; });
+  })();
+  function toonPick(inst) {
+    const st = inst.state, t = inst.t, held = inst.held, ph = (((inst.phase / (2 * Math.PI)) % 1) + 1) % 1, a = clamp(inst.actT || 0, 0, .999), moving = inst.ctl && inst.ctl.speed > 14;
+    const loop = (n, c, fps) => n + '_' + (Math.floor(t * fps) % c);
+    if (held === 'mop' && st !== 'mop') return moving ? 'mop_' + Math.floor(ph * 4) % 4 : 'mop_0';
+    switch (st) {
+      case 'walk': return 'walk_' + Math.floor(ph * 8) % 8;
+      case 'run': return 'run_' + Math.floor(ph * 8) % 8;
+      case 'carry': return 'carry_' + Math.floor(ph * 4) % 4;
+      case 'jump': return inst.ctl && inst.ctl.vy > 120 ? 'jump_0' : 'jump_1';
+      case 'fall': return 'jump_2';
+      case 'land': return 'pant_0';
+      case 'stop': return 'skid_0';
+      case 'mop': return loop('mop', 4, 8);
+      case 'repair': case 'tinker': case 'scrub': case 'scrubFridge': case 'scrubToilet': case 'inspectLow': case 'flush': return loop('tool', 3, 7);
+      case 'pickup': return 'pickup_' + (a < .5 ? 0 : 1);
+      case 'putBag': case 'toss': return 'throw_' + (a < .45 ? 0 : 1);
+      case 'panic': case 'shock': case 'nervous': case 'disgust': case 'angry': case 'fail': case 'stumble': return loop('panic', 4, 9);
+      case 'cheer': return loop('victory', 2, 5);
+      case 'tired': case 'sit': return 'pant_0';
+      case 'open': case 'openFridge': case 'reach': case 'door': case 'haul': return 'pickup_0';
+      default: return held === 'bag' ? loop('carry', 4, 3) : loop('idle', 4, 3.5);
+    }
+  }
+  function drawToon(inst, g) {
+    const p = inst.pose, st = inst.state, held = inst.held, t = inst.t, k = 1 / TOON.PX, name = toonPick(inst), im = TOON.img[name] || TOON.img.idle_0;
+    g.save(); const fc = Math.abs(inst.face) < .12 ? .12 * Math.sign(inst.face || 1) : inst.face; g.scale(fc, 1);
+    const w = im.width * k, h = im.height * k, ox = -TOON.cx * k, oy = -TOON.fy * k;
+    let sq = 1, lean = 0, lift = 0;
+    if (st === 'sit') { sq = .8; lean = -.35; } else if (st === 'tired') { lean = .12; } else if (st === 'idle' || st === 'idleBored') sq = 1 + S_(t * 2.2) * .006;
+    if (st === 'sit') g.translate(-6, 0);
+    g.translate(0, -92); g.rotate(lean); g.scale(1 / sq, sq); g.translate(0, 92);
+    g.drawImage(im, ox, oy, w, h);
+    // props that are not baked into the frames
+    const hasBag = name.indexOf('carry') === 0, hasMop = name.indexOf('mop') === 0;
+    if (held === 'vac') drawTool(g, 'vac', p, 26, -84);
+    else if (held && held !== 'bag' && held !== 'mop' && held !== 'clothes') { const hp = handPos(st, p); drawHeld(g, held, hp[0], hp[1], p, t); }
+    else if (held === 'clothes') drawHeld(g, 'clothes', 24, -80, p, t);
+    else if (held === 'bag' && !hasBag && (st === 'pickup' || st === 'toss' || st === 'putBag')) drawHeld(g, 'bag', 26, -82, p, t);
+    g.restore();
+  }
   function handPos(st, p) {
     if (st === 'phone' || st === 'phoneUse' || st === 'listen' || st === 'nervous') return [13, -150];
     if (st === 'mop' || st === 'vac') return [26, -88 + S_(p.tool * .05) * 2];
@@ -250,6 +297,7 @@
       const a = 1 - Math.exp(-dt * (cyc ? 40 : 15)); for (const k in tg) inst.pose[k] = inst.pose[k] === undefined ? tg[k] : lerp(inst.pose[k], tg[k], k === 'eye' ? Math.min(1, a * 3) : a);
     };
     inst.draw = function (g, t) {
+      if (kind === 'bamboul' && TOON.ready && !(BB.CFG && BB.CFG.realHero)) return drawToon(inst, g);
       if (kind === 'bamboul' && HS.ready) return drawHeroSprite(inst, g);
       const p = inst.pose, held = inst.held, st = inst.state;
       g.save(); g.scale(sc, sc);
@@ -346,6 +394,8 @@
       kind = LOOKS[kind] ? kind : 'bamboul'; mood = mood || 'neutral'; const key = kind + ':' + mood;
       if (portraitCache[key]) return portraitCache[key];
       const c = BB.mk(160, 160); portraitCache[key] = c; paintRigPortrait(c, kind, mood);
+      const useImg = kind !== 'bamboul' || /shock|panic|angry|scared/.test(mood);
+      if (useImg && typeof Image !== 'undefined') { const im = new Image(); im.onload = () => { const g = c.getContext('2d'); g.clearRect(0, 0, 160, 160); g.drawImage(im, 0, 0, 160, 160); }; im.src = 'assets/portraits/' + kind + '.jpg'; if (kind !== 'bamboul') return c; }
       if (kind === 'bamboul') { const im = HS.img.closeup; const paint = () => { const g = c.getContext('2d'); g.fillStyle = '#4a3f2b'; g.fillRect(0, 0, 160, 160); g.drawImage(im, 0, 0, 128, 128, 10, 14, 140, 140); const tn = { angry: 'rgba(200,40,30,.28)', shock: 'rgba(255,255,255,.18)', smug: 'rgba(240,190,60,.16)' }[mood]; if (tn) { g.fillStyle = tn; g.fillRect(0, 0, 160, 160); } }; if (im && im.complete && im.width) paint(); else if (im) im.addEventListener('load', paint); }
       return c;
     },

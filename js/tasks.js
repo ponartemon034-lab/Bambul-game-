@@ -64,7 +64,7 @@
     return {
       v: 1, mode: 'play', total, time: total, lazy: 0, slow: 1, slowExt: 1, slowTask: 1,
       f: {
-        lightHall: 0, tvOn: 0, doorOpen: 0, phoneRing: 0, phoneUp: 0, boxesCleared: 0, closetOpen: 0,
+        lightHall: 0, tvOn: 0, doorOpen: 0, phoneRing: 0, phoneUp: 0, boxesCleared: 0, closetOpen: 0, closetStash: 0,
         fridgeOpen: 0, fridgeDone: 0, fridgeStage: 0, fridgeRot: 6, dishesDone: 0, binFill: 0, bagFill: 0,
         washerOn: 0, mirrorDone: 0, faucetOn: 1, faucetHowl: 1, faucetFixed: 0, faucetStage: 0,
         toiletClean: 0, flushFixed: 0, toiletFlush: 0, printerError: 1, printerStage: 0, printerFixed: 0, printerPrinting: 0,
@@ -160,7 +160,7 @@
   function progress(S) {
     S = S || BB.S; if (!S || !S.items || !S.bag || !S.bin || !S.wash) return { score: 0, parts: [], done: 0, total: 11 };
     const f = S.f, c = S.count || { trash: 1, cloth: 1 };
-    const gT = (S.bag.n + S.bin.n), garb = frac(gT, c.trash), cloth = frac(S.wash.n, c.cloth);
+    const gT = (S.bag.n + S.bin.n + .6 * Math.min(4, S.f.closetStash || 0)), garb = frac(gT, c.trash), cloth = frac(S.wash.n, c.cloth);
     let sSum = 0; for (const s of S.stains) sSum += 1 - clamp(s.p, 0, 1); const stain = S.stains.length ? sSum / S.stains.length : 1;
     let dSum = 0; for (const d of S.dust) dSum += 1 - clamp(d.p, 0, 1); const dust = S.dust.length ? dSum / S.dust.length : 1;
     const nStain = S.stains.filter(s => s.p <= 0.001).length;
@@ -298,7 +298,7 @@
         if (S.bag.n >= S.bag.cap) return 'Взять полный мешок';
         return S.carry.trash > 0 ? 'Закинуть мусор в мешок (' + S.carry.trash + ')' : null;
       case 'bin': return S.carry.haul > 0 ? 'Выкинуть мешок в бак' : S.carry.trash > 0 ? 'Выкинуть мусор в бак (' + S.carry.trash + ')' : null;
-      case 'closet': return S.tools.vac ? null : 'Достать пылесос';
+      case 'closet': return !S.tools.vac ? 'Достать пылесос' : (S.carry.trash > 0 ? 'Затолкать мусор в шкаф (с глаз долой)' : null);
       case 'mopStand': return S.tools.mop ? null : 'Взять швабру';
       case 'toolbox': return S.tools.box ? null : 'Взять ящик с инструментами';
       case 'washer': return S.carry.cloth > 0 ? 'Закинуть шмотки в стиралку (' + S.carry.cloth + ')' : null;
@@ -438,7 +438,19 @@
         });
         break;
       }
-      case 'closet': faceTo(ax); takeTool(S, 'vac', true); break;
+      case 'closet': {
+        faceTo(ax); if (!S.tools.vac) { takeTool(S, 'vac', true); break; }
+        act('putBag', 0.7, () => {
+          if (BB.S !== S || S.carry.trash <= 0) return; const n = S.carry.trash; S.carry.trash = 0; S.f.closetStash = (S.f.closetStash || 0) + n; sfx('toss'); sfx('doorOpen'); syncFill(S);
+          if (S.f.closetStash >= 5) {              // the wardrobe cannot take any more: boom
+            const k = S.f.closetStash; S.f.closetStash = 0; sfx('bad'); if (BB.cam) BB.cam.shake = 1; addTime(S, 8, 'closetBoom');
+            for (let i = 0; i < k; i++) S.items.push({ id: 'x' + Math.floor(Math.random() * 1e6), kind: 'trash', v: (i * 5 + 3) % 16, room: 'hall', ax: BB.abs('hall', 470 + i * 14), z: -10 + (i % 3) * 22, taken: 0 });
+            say('boom', { k: 'boom' }, 9, true); toast('Шкаф не выдержал! Весь мусор вывалился обратно, −8 сек');
+          } else { say('stash', { k: 'stash' }, 6, true); toast('Мусор спрятан в шкафу: ' + S.f.closetStash + '/4. Хозяин туда лазить не будет... наверное'); }
+          check(S);
+        });
+        break;
+      }
       case 'mopStand': faceTo(ax); takeTool(S, 'mop', false); break;
       case 'toolbox': faceTo(ax); takeTool(S, 'box', false); break;
       case 'washer':

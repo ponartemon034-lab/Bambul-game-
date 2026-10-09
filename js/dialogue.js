@@ -1486,6 +1486,7 @@
       return o;
     });
   }
+  dlg._SC = SC; dlg.add = D; dlg.W = W;
   dlg.script = function (id, ctx) {
     let key = id;
     const m = /^landlord:(\d+)$/.exec(id);
