@@ -254,6 +254,75 @@
     else if (held === 'bag' && !hasBag && (st === 'pickup' || st === 'toss' || st === 'putBag')) drawHeld(g, 'bag', 26, -82, p, t);
     g.restore();
   }
+
+  /* ---- cut-out puppet built from the idle sprite: head + torso + two articulated arms (shoulder/elbow) ---- */
+  const PUP = { built: false, part: {}, SH: { A: [24, 74], B: [102, 72] }, EL: { A: [20, 130], B: [112, 130] }, HD: { A: [24, 196], B: [115, 192] }, NECK: [64, 62] };
+  const POLY = {
+    uA: [[0, 64], [30, 56], [38, 70], [38, 100], [34, 132], [6, 138], [0, 100]], fA: [[2, 126], [34, 124], [34, 150], [30, 178], [30, 208], [4, 212], [2, 170]],
+    uB: [[96, 64], [128, 66], [132, 100], [124, 134], [100, 134], [96, 100]], fB: [[104, 124], [132, 126], [132, 208], [109, 204], [109, 150], [104, 140]],
+    head: [[0, 0], [132, 0], [132, 61], [0, 61]]
+  };
+  function clipCopy(im, poly) { const c = BB.mk(im.width, im.height), g = c.getContext('2d'); g.beginPath(); poly.forEach((q, i) => i ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1])); g.closePath(); g.save(); g.clip(); g.drawImage(im, 0, 0); g.restore(); return c; }
+  function buildPuppet(im) {
+    const W = im.width, H = im.height, part = {};
+    for (const k of ['uA', 'fA', 'uB', 'fB']) part[k] = clipCopy(im, POLY[k]);
+    part.head = clipCopy(im, POLY.head);
+    const base = BB.mk(W, H), g = base.getContext('2d'); g.drawImage(im, 0, 0);
+    g.globalCompositeOperation = 'destination-out'; g.fillStyle = '#000';
+    for (const k of ['uA', 'fA', 'uB', 'fB']) { g.beginPath(); POLY[k].forEach((q, i) => i ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1])); g.closePath(); g.fill(); }
+    g.globalCompositeOperation = 'source-over';
+    const patch = (sx, dx, w, y0, y1) => { g.save(); g.beginPath(); g.rect(dx, y0, w, y1 - y0); g.clip(); g.translate(dx + w, 0); g.scale(-1, 1); g.drawImage(im, sx, 0, w, H, 0, 0, w, H); g.restore(); };
+    patch(36, 26, 12, 68, 182); patch(84, 94, 12, 68, 182);
+    part.base = base; PUP.part = part; PUP.built = true;
+  }
+  function rotAround(g, px, py, a) { g.translate(px, py); g.rotate(a); g.translate(-px, -py); }
+  function fk(side, a, e) { const sh = PUP.SH[side], el = PUP.EL[side], hd = PUP.HD[side], c = Math.cos(a), s = Math.sin(a); const ex = sh[0] + (el[0] - sh[0]) * c - (el[1] - sh[1]) * s, ey = sh[1] + (el[0] - sh[0]) * s + (el[1] - sh[1]) * c, t = a + e, ct = Math.cos(t), st = Math.sin(t); return [ex + (hd[0] - el[0]) * ct - (hd[1] - el[1]) * st, ey + (hd[0] - el[0]) * st + (hd[1] - el[1]) * ct]; }
+  function armTargets(st, t, a, held) {
+    const so = Math.sin(t * 1.7) * .03, r = { aA: .05 + so, eA: 0, aB: -.05 - so, eB: 0, head: 0 };
+    const set = (A, B, h) => { if (A) { r.aA = A[0]; r.eA = A[1]; } if (B) { r.aB = B[0]; r.eB = B[1]; } if (h != null) r.head = h; };
+    const u = Math.sin(clamp(a, 0, 1) * Math.PI);
+    switch (st) {
+      case 'idle': case 'idleBored': if (held === 'bag') set(null, [-.3, -.12]); r.head = st === 'idleBored' ? Math.sin(t * 1.3) * .14 : Math.sin(t * .6) * .03; break;
+      case 'pickup': set([-.5 * u - .1, -.3], [-.6 * u - .2, -.3], .1 * u); break;
+      case 'putBag': case 'toss': { const q = clamp(a, 0, 1); set(null, [q < .4 ? .6 : -2.1, q < .4 ? -.2 : -.3], 0); break; }
+      case 'open': case 'openFridge': case 'reach': case 'door': case 'haul': set([.12, 0], [-1.45, -.1], st === 'openFridge' ? -.08 : 0); break;
+      case 'disgust': set([-.6, -2.2], [-.8, -2.5], -.2); break;
+      case 'scrub': case 'scrubFridge': set([-.6, -.8], [-1.25 + Math.sin(t * 11) * .3, -.5], .06); break;
+      case 'scrubToilet': set([-.6, -.8], [-1.1 + Math.sin(t * 10) * .35, -.6], .1); break;
+      case 'mop': set([-.8, -.5], [-.85 + Math.sin(t * 7) * .12, -.5], .05); break;
+      case 'vac': set([-.9, -.4], [-.9 + Math.sin(t * 4) * .1, -.4]); break;
+      case 'phoneUse': set([.12, 0], [-.5 - a * .1, -2.6 * clamp(a * 1.4, 0, 1)], -.05); break;
+      case 'phone': set([.12, 0], [-.5, -2.55], -.08 + Math.sin(t * 3) * .02); break;
+      case 'listen': set([.4, -1.0], [-.5, -2.55], -.14); break;
+      case 'nervous': set([-.3 + Math.sin(t * 9) * .08, -.9], [-.5, -2.55], .05); break;
+      case 'inspect': set([.1, 0], [-.55, -2.0], .12); break;
+      case 'inspectLow': set([-.5, -.5], [-1.0, -.4], -.12); break;
+      case 'repair': case 'tinker': case 'flush': set([-1.0, -.7], [-1.1 + Math.sin(t * 9) * .18, -.7 + Math.cos(t * 9) * .15], -.1); break;
+      case 'cheer': set([-2.7 + Math.sin(t * 16) * .2, -.2], [-2.55 - Math.sin(t * 16) * .2, -.2], Math.sin(t * 8) * .06); break;
+      case 'panic': case 'shock': set([-2.2 + Math.sin(t * 20) * .12, -.8], [-2.3 - Math.sin(t * 20) * .12, -.8], Math.sin(t * 22) * (st === 'panic' ? .1 : .02)); break;
+      case 'angry': set([-.35, -1.5], [-.35, -1.5], .1); break;
+      case 'shrug': set([-.55 * u, -1.3 * u], [-.55 * u, -1.3 * u], .1 * u); break;
+      case 'fail': case 'tired': set([.18, .12], [.18, .12], .28); break;
+      case 'point': set([.1, 0], [-1.5, 0]); break;
+      case 'wave': set(null, [-2.6, Math.sin(t * 8) * .5]); break;
+      case 'stumble': set([-1.4, -.2], [-1.6, -.2]); break;
+      default: break;
+    }
+    return r;
+  }
+  function drawPuppet(inst, g, k, held) {
+    const P_ = PUP.part, im = HS.img.idle, w = im.width, h = im.height, A = inst.arm;
+    g.save(); g.translate(-w * k / 2, -h * k); g.scale(k, k);
+    g.drawImage(P_.base, 0, 0);
+    g.save(); rotAround(g, PUP.NECK[0], PUP.NECK[1], A.head); g.drawImage(P_.head, 0, 0); g.restore();
+    for (const side of ['A', 'B']) {
+      const a = side === 'A' ? A.aA : A.aB, e = side === 'A' ? A.eA : A.eB, sh = PUP.SH[side], el = PUP.EL[side];
+      g.save(); rotAround(g, sh[0], sh[1], a); g.drawImage(P_['u' + side], 0, 0);
+      rotAround(g, el[0], el[1], e); g.drawImage(P_['f' + side], 0, 0); g.restore();
+    }
+    g.restore();
+    const hand = fk('B', A.aB, A.eB); return [(hand[0] - w / 2) * k, (hand[1] - h) * k];
+  }
   function handPos(st, p) {
     if (st === 'phone' || st === 'phoneUse' || st === 'listen' || st === 'nervous') return [13, -150];
     if (st === 'mop' || st === 'vac') return [26, -88 + S_(p.tool * .05) * 2];
@@ -287,8 +356,9 @@
       const breathe = idleish ? S_(t * 2) * .006 : 0, sy = (1 - crouch / 215) * (1 + breathe), sx = 1 + crouch / 520 - breathe * .5;
       const lean = clamp(p.lean, -.5, .75) * .85 + (idleish ? S_(t * .9) * .014 : 0), shake = (st === 'panic' ? S_(t * 40) * 1.2 : 0), hop = p.lift || 0;
       g.translate(shake + (idleish ? S_(t * .9) * .8 : 0), -hop); g.translate(0, hip); g.rotate(lean); g.scale(sx, sy); g.translate(0, -hip);
-      draw(im, 0, 0);
-      const hp = handPos(st, p);
+      if (!PUP.built && im.width) buildPuppet(im);
+      let hp;
+      if (PUP.built && inst.arm) hp = drawPuppet(inst, g, k, held); else { draw(im, 0, 0); hp = handPos(st, p); }
       if (held === 'mop' || held === 'vac') drawTool(g, held, p, hp[0], hp[1]);
       else if (held) drawHeld(g, held, hp[0], hp[1], p, t);
     }
@@ -303,6 +373,7 @@
       ctl = ctl || {}; inst.t = ctl.t != null ? ctl.t : inst.t + dt; inst.state = ctl.state || inst.state; inst.phase = ctl.phase != null ? ctl.phase : inst.phase;
       inst.face = ctl.face != null ? ctl.face : inst.face; inst.held = ctl.held !== undefined ? ctl.held : inst.held; inst.actT = ctl.actT || 0; inst.ctl = ctl;
       const cyc = inst.state === 'walk' || inst.state === 'run' || inst.state === 'carry';
+      { const at = armTargets(inst.state, inst.t, inst.actT, inst.held); inst.arm = inst.arm || Object.assign({}, at); const ka = 1 - Math.exp(-dt * 16); for (const q in at) inst.arm[q] = lerp(inst.arm[q], at[q], ka); }
       const tg = poseFor(inst.state, inst.t, inst.phase, inst.actT, ctl);
       const a = 1 - Math.exp(-dt * (cyc ? 40 : 15)); for (const k in tg) inst.pose[k] = inst.pose[k] === undefined ? tg[k] : lerp(inst.pose[k], tg[k], k === 'eye' ? Math.min(1, a * 3) : a);
     };

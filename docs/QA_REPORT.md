@@ -29,3 +29,6 @@ Known issues / next steps: fix the fridge scrub-stage error, story call scheduli
 * Mechanic adapted: stash carried trash in the hall wardrobe (up to 4, 60% credit); the 5th makes it explode (-8 s, trash spills back).
 * Not ported: Three.js 3D renderer, printed flush-button flow (our printer/toilet minigames already cover repair), prototype minigame art.
 * Tests after merge: qa_run PASS (except software-render frame time), test_tasks OK, test_story 41/43 (same 2 scheduling failures as before).
+
+## Update: puppet animation for the realistic hero
+The idle sprite is cut at load time into head / torso base (arms inpainted) / two articulated arms (shoulder+elbow). All action states drive arm and head angles (phone, mop, vac, scrub, repair, reach, cheer, panic, shrug, wave, point, pickup...), held items follow the forward-kinematic hand position. Walk/run/jump use the painted run frames (scaled), sofa pose = torso/legs split. Checked on screenshots: cheer, phone, mop, panic, pickup, openFridge, scrubToilet, point, shock, wave. Not verified: smoothness of transitions in motion, lower-body animation for crouch actions (still a squash of the standing sprite).
