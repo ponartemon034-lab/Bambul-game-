@@ -21,3 +21,11 @@ Known issues / next steps: fix the fridge scrub-stage error, story call scheduli
 * Fixed: tasks.js crashed on partial/foreign state (S.wash / S.bag undefined) - the repeated page error in the fridge test.
 * Fridge scrub now completes at 88% (was 96%) so a human never gets stuck on the last specks.
 * Remaining test noise: story scheduled-call timing in the harness, UI test dialog step clicking past the last line, mini test 'good food costs 4 s' uses wall-clock drift.
+
+## Update: second prototype merged
+* Hero: full cartoon animation set from bamboul_game_2 (assets/char/toon, 46 frames: idle/walk/run/carry/mop/tool/pickup/throw/panic/victory/jump/skid) is now the default; the realistic painted sprites are available via Settings -> "Реалистичный герой".
+* Portraits for Dan / landlord / Bamboul (shock) from the prototype (assets/portraits).
+* Dialogue: js/dialogue_plus.js - landlord calls 1-4 and Dan's call rewritten from the prototype with extra mat, ~150 new profane barks across categories.
+* Mechanic adapted: stash carried trash in the hall wardrobe (up to 4, 60% credit); the 5th makes it explode (-8 s, trash spills back).
+* Not ported: Three.js 3D renderer, printed flush-button flow (our printer/toilet minigames already cover repair), prototype minigame art.
+* Tests after merge: qa_run PASS (except software-render frame time), test_tasks OK, test_story 41/43 (same 2 scheduling failures as before).
