@@ -868,6 +868,245 @@
   };
 
   /* ============================================================================
+     STATIONS: dishes, mirror, faucet, toilet, printer, vacJam
+     Shared helpers: scrubStage (sponge/brush over dirt), pickStage (find the right part), holdStage (hold in green zone)
+     ========================================================================== */
+  function pipsOf(ids, labels) { return r => { const c = ids.indexOf(r.stageId); return ids.map((k, i) => ({ l: labels[i], done: i < c || r.won, cur: i === c && !r.won })); }; }
+  function scrubStage(r, o) {
+    const m = r.m; const sc = Scrub({ w: W, h: H, areas: o.areas, seed: o.seed || 9, brush: o.brush || 26 }); sc.load(m[o.key]);
+    let lx = 0, ly = 0, ls = 0, done = false, doneT = -1, said = false;
+    return {
+      hint: o.hint, anim: o.anim || 'scrub', cursor: 'none', kb: 'cursor', dan: o.dan,
+      enter() { r.setProg(sc.prog()); if (o.start) r.bark(o.cat, o.start); },
+      save() { m[o.key] = sc.ser(); }, leave() { m[o.key] = sc.ser(); },
+      ptr(type, x, y) {
+        if (type === 'down') { lx = x; ly = y; }
+        else if (type === 'move' && r.pd && !done) {
+          const d = Math.hypot(x - lx, y - ly);
+          if (d > .5) { sc.brush(x, y, Math.min(d, 40) * .02); if (Math.random() < .5) r.emit({ x: x + (Math.random() - .5) * 20, y: y + (Math.random() - .5) * 14, vx: (Math.random() - .5) * 20, vy: -12, life: .8, kind: 'bub', size: 2 + Math.random() * 3 }); if (Math.random() < .08) r.sfx('scrub'); }
+          lx = x; ly = y;
+        }
+      },
+      tick(dt) {
+        const p = sc.prog(); r.setProg(p, (o.label || 'Чистота') + ': ' + Math.round(p * 100) + '%'); ls += dt; if (ls > .8) { ls = 0; m[o.key] = sc.ser(); }
+        if (!said && p > .5 && o.prog) { said = true; r.bark(o.cat, o.prog); }
+        if (!done && p >= .88) { done = true; sc.clearAll(); m[o.key] = sc.ser(); doneT = 0; r.good(); r.sfx('taskDone'); }
+        if (doneT >= 0) { doneT += dt; if (doneT > .9) { doneT = -1; o.next(); } }
+      },
+      draw(g, t) {
+        o.bg(g, t); sc.draw(g, 0, 0); if (o.fg) o.fg(g, t, done);
+        const k = !done && r.pd ? 1 : 0; drawTool(g, o.tool || 'sponge', (r.cur.kb || r.pd ? r.cur.x : r.px) + 12, (r.cur.kb || r.pd ? r.cur.y : r.py) + 6, -.35, t, !!k);
+        vignette(g, .35);
+      }
+    };
+  }
+  function pickStage(r, o) { // choose the right object among several; wrong ones cost time
+    let doneT = -1, sel = null;
+    return {
+      hint: o.hint, anim: o.anim || 'inspect', dan: o.dan, targets: o.targets, noRing: false,
+      enter() { if (o.start) r.bark(o.cat, o.start); if (o.setup) o.setup(); },
+      pick(tg) {
+        if (doneT >= 0) return;
+        if (tg.right) { sel = tg.id; doneT = 0; r.good(); r.sfx('taskDone'); r.floatText(tg.x + tg.w / 2, tg.y, o.rightTxt || 'есть!', '#b6e08a'); if (o.right) r.bark(o.cat, o.right); if (o.onRight) o.onRight(tg); }
+        else { r.penalty(o.pen == null ? 3 : o.pen); r.sfx('bad'); r.floatText(tg.x + tg.w / 2, tg.y, 'не то', '#ff9a8a'); if (o.wrong) r.bark(o.cat, o.wrong); if (tg.info) r.setHint(tg.info); }
+      },
+      tick(dt) { if (doneT >= 0) { doneT += dt; if (doneT > 1.0) { doneT = -2; o.next(); } } },
+      draw(g, t) { o.draw(g, t, sel, doneT >= 0); vignette(g, .3); }
+    };
+  }
+  function holdStage(r, o) { // hold pointer/Space while a marker sits inside the green zone; fill the bar
+    let pos = 0, v = 1, p = 0, doneT = -1, cdT = 0;
+    return {
+      hint: o.hint, anim: o.anim || 'repair', dan: o.dan, cursor: 'pointer', kb: 'cursor', dbg: () => ({ pos, zone: o.zone, p }),
+      enter() { r.setProg(0); if (o.start) r.bark(o.cat, o.start); },
+      tick(dt) {
+        if (doneT >= 0) { doneT += dt; if (doneT > .9) { doneT = -2; o.next(); } return; }
+        pos += v * dt * (o.speed || 1.1); if (pos > 1) { pos = 1; v = -1; } if (pos < 0) { pos = 0; v = 1; }
+        const inZone = pos > o.zone[0] && pos < o.zone[1];
+        if (r.pd) { if (inZone) { p += dt / (o.time || 2.6); if (Math.random() < .15) r.emit({ x: o.fx || 380, y: o.fy || 200, vx: (Math.random() - .5) * 60, vy: -30, life: .6, kind: 'dot', size: 2, col: '#cfe' }); } else { p = Math.max(0, p - dt * .35); cdT -= dt; if (cdT <= 0) { cdT = 1.2; r.sfx('bad'); if (o.slip) r.barkOpt(o.cat, o.slip, .5); } } }
+        r.setProg(p, o.label || 'Прогресс'); if (p >= 1) { doneT = 0; r.good(); r.sfx('taskDone'); }
+      },
+      draw(g, t) {
+        o.bg(g, t, p, r.pd); const bx = 160, by = 340, bw = 440; box(g, bx - 4, by - 4, bw + 8, 30, 8, 'rgba(0,0,0,.6)'); box(g, bx, by, bw, 22, 6, '#2b2723');
+        box(g, bx + bw * o.zone[0], by, bw * (o.zone[1] - o.zone[0]), 22, 6, 'rgba(120,200,90,.85)'); const mx = bx + bw * pos; box(g, mx - 4, by - 8, 8, 38, 3, r.pd ? '#fff' : '#f2c14e');
+        txt(g, 'держи кнопку, пока метка в зелёном', 380, by + 48, { font: '700 12px ' + FONT, color: COL.dim, align: 'center' }); vignette(g, .3);
+      }
+    };
+  }
+  function actStage(r, o) { // single big action button then a short animation
+    let t0 = -1;
+    const go = () => { if (t0 >= 0) return; t0 = 0; r.setActions([]); r.sfx(o.sfx || 'wrench'); if (o.bark) r.bark(o.cat, o.bark); };
+    return {
+      hint: o.hint, anim: o.anim || 'inspect', dan: o.dan, targets: o.target ? [o.target] : [], pick: go,
+      enter() { r.setActions([{ label: o.label, sub: o.sub, big: true, primary: true, fn: go }]); if (o.start) r.bark(o.cat, o.start); },
+      tick(dt) { if (t0 >= 0) { t0 += dt; if (t0 > (o.dur || 1)) { t0 = -2; o.next(); } } },
+      draw(g, t) { o.draw(g, t, t0 < 0 ? 0 : clamp(t0 / (o.dur || 1), 0, 1)); vignette(g, .3); }
+    };
+  }
+  const sinkBg = (g, t, wet) => {
+    tileWall(g, 0, 0, W, 250, '#cfd8d6', '#8b9693', 56, 4); box(g, 0, 250, W, 150, 0, lg(g, 0, 250, 0, 400, ['#8a6b4a', '#5b4430']));
+    box(g, 70, 232, 620, 22, 4, lg(g, 0, 232, 0, 254, ['#e9eef0', '#98a3a8'])); box(g, 150, 250, 460, 120, 12, lg(g, 0, 250, 0, 370, ['#b9c3c6', '#6f7a7f']));
+    ell(g, 380, 300, 190, 46, '#2f3a3d'); ell(g, 380, 296, 176, 38, wet ? '#5b7a80' : '#43575a'); chrome(g, 366, 120, 28, 96, true); chrome(g, 340, 112, 80, 14, false);
+  };
+  const plate = (g, x, y, rx, ry, dirty) => { ell(g, x, y + 4, rx, ry, 'rgba(0,0,0,.35)'); ell(g, x, y, rx, ry, '#eef1f2'); ell(g, x, y - 1, rx * .72, ry * .7, '#dde3e5'); if (dirty) { ell(g, x - 6, y - 2, rx * .4, ry * .35, 'rgba(150,100,40,.55)'); } };
+  /* ---------- dishes ---------- */
+  defs.dishes = {
+    title: 'Посуда', anim: 'scrub', first: 'wash', isDone: S => !!S.f.dishesDone,
+    init(r) { r.m.stage = 'wash'; return 'wash'; }, pips: pipsOf(['wash'], ['Отмыть']), stages: {}
+  };
+  defs.dishes.stages.wash = r => {
+    const areas = []; const r2 = rng(31); const P = [[220, 214], [330, 208], [440, 214], [270, 190], [390, 188], [500, 196], [170, 200]];
+    P.forEach((p, i) => areas.push({ x: p[0], y: p[1], rx: 36 + r2() * 12, ry: 12 + r2() * 4, th: 1.4 + (i % 3) * .2, col: i % 2 ? '#8a5a1e' : '#6a7a2a', alpha: .85 }));
+    return scrubStage(r, {
+      key: 'cells', areas, seed: 41, cat: 'dishes', start: 'start', prog: 'prog', label: 'Чистота посуды',
+      hint: 'Гора посуды в раковине. Зажми и води губкой по засохшим пятнам (стрелки + Space с клавиатуры).', dan: 'Тарелки с коростой. Губкой по ним, пока шкала не заполнится. Не думай, что это было раньше едой.',
+      bg: (g, t) => { sinkBg(g, t, true); for (const p of [[170, 200], [220, 214], [270, 190], [330, 208], [390, 188], [440, 214], [500, 196]]) plate(g, p[0], p[1], 42, 14, false); },
+      next: () => { r.bark('dishes', 'done'); r.win(); }
+    });
+  };
+  /* ---------- mirror ---------- */
+  defs.mirror = {
+    title: 'Зеркало', anim: 'scrub', first: 'wipe', isDone: S => !!S.f.mirrorDone,
+    init(r) { r.m.stage = 'wipe'; return 'wipe'; }, pips: pipsOf(['wipe'], ['Протереть']), stages: {}
+  };
+  defs.mirror.stages.wipe = r => {
+    const areas = [{ x: 380, y: 200, rx: 230, ry: 120, th: 1.0, col: '#9aa7a0', alpha: .8 }, { x: 250, y: 140, rx: 70, ry: 40, th: 1.6, col: '#6e7d52' }, { x: 520, y: 250, rx: 80, ry: 36, th: 1.6, col: '#6e7d52' }, { x: 400, y: 110, rx: 40, ry: 24, th: 1.8, col: '#7d5a24' }];
+    return scrubStage(r, {
+      key: 'cells', areas, seed: 52, cat: 'mirror', start: 'start', brush: 34, tool: 'cloth', label: 'Чистота стекла',
+      hint: 'Зеркало в брызгах зубной пасты и налёте. Води тряпкой, пока не увидишь свою честную физиономию.', dan: 'Тряпкой по стеклу, и желательно не размазывать, а убирать.',
+      bg: (g, t) => { tileWall(g, 0, 0, W, 400, '#cfd8d6', '#8b9693', 56, 6); box(g, 120, 30, 520, 330, 14, '#4b4f52'); box(g, 134, 44, 492, 302, 8, lg(g, 134, 44, 626, 346, ['#bfd6dd', '#e8f3f6', '#9fbac2'])); g.save(); g.globalAlpha = .25; poly(g, [180, 44, 260, 44, 200, 346, 134, 346], '#fff'); g.restore(); },
+      next: () => { r.bark('mirror', 'done'); r.win(); }
+    });
+  };
+  /* ---------- faucet ---------- */
+  defs.faucet = {
+    title: 'Кран', anim: 'inspectLow', first: 'find', isDone: S => !!S.f.faucetFixed,
+    init(r) { if (!r.m.stage || r.m.stage === 'done') r.m.stage = 'find'; r.loop('faucetHowl', true); return r.m.stage; },
+    onClose(r) { r.loop('faucetHowl', false); }, pips: pipsOf(['find', 'tighten', 'test'], ['Найти', 'Затянуть', 'Проверить']), stages: {}
+  };
+  const FAU = [{ id: 'aerator', n: 'Аэратор', x: 330, y: 70, w: 100, h: 44, right: 0, info: 'Аэратор просто красиво сидит. Он не вибрирует.' }, { id: 'handle', n: 'Рукоятка', x: 450, y: 110, w: 90, h: 50, right: 0, info: 'Рукоятка не воет, она просто липкая.' }, { id: 'nut', n: 'Накидная гайка', x: 350, y: 205, w: 80, h: 40, right: 1, info: '' }, { id: 'hose', n: 'Шланг подводки', x: 250, y: 280, w: 90, h: 50, right: 0, info: 'Шланг мокрый, но он не тот, кто дрожит.' }, { id: 'valve', n: 'Угловой вентиль', x: 470, y: 290, w: 90, h: 50, right: 0, info: 'Вентиль закрыт. Дрожит не он.' }];
+  function faucetDraw(g, t, vib, o) {
+    o = o || {}; box(g, 0, 0, W, 400, 0, lg(g, 0, 0, 0, 400, ['#c9d3d1', '#8e9a98'])); box(g, 180, 330, 400, 70, 0, '#5b4430'); const sh = vib ? Math.sin(t * 90) * 2.2 : 0;
+    chrome(g, 370 + sh, 110, 36, 160, true); chrome(g, 330 + sh, 70, 110, 30, false); box(g, 340 + sh, 90, 60, 20, 6, '#c9d2d6'); chrome(g, 450, 120, 60, 26, false); box(g, 505, 105, 22, 56, 8, '#e0b13a');
+    g.save(); g.translate(sh, 0); box(g, 350, 205, 80, 40, 8, lg(g, 0, 205, 0, 245, ['#e2e6e8', '#7e888c'])); for (let i = 0; i < 5; i++) line(g, 358 + i * 14, 208, 358 + i * 14, 242, 'rgba(0,0,0,.25)', 2); g.restore();
+    chrome(g, 250, 285, 90, 22, false); chrome(g, 470, 290, 90, 22, false); line(g, 300, 270, 300, 300, '#3a3f49', 5);
+    if (!o.dry) for (let i = 0; i < 6; i++) { const x = 388 + Math.sin(t * 14 + i) * 5, y = 120 + ((t * 260 + i * 40) % 210); ell(g, x, y, 2.4, 6, 'rgba(160,210,240,.8)'); }
+  }
+  defs.faucet.stages.find = r => pickStage(r, {
+    cat: 'faucet', start: 'open', right: 'found', wrong: 'wrongPart', rightTxt: 'вот она!',
+    hint: 'Кран воет — значит, что-то дрожит и ослабло. Тапни по детали, которая трясётся.', dan: 'Смотри, что вибрирует. Это гайка под изгибом, не красивые детали.',
+    targets: () => FAU.map(p => ({ id: p.id, x: p.x, y: p.y, w: p.w, h: p.h, label: p.n, info: p.info, right: p.right })),
+    draw: (g, t, sel, done) => { faucetDraw(g, t, !done); for (const p of FAU) if (p.right && !done) { g.save(); g.globalAlpha = .12 + .08 * Math.sin(t * 8); g.fillStyle = '#fff'; g.fillRect(p.x, p.y, p.w, p.h); g.restore(); } },
+    next: () => r.go('tighten')
+  });
+  defs.faucet.stages.tighten = r => holdStage(r, {
+    cat: 'faucet', start: 'tool', slip: 'miss', zone: [.35, .67], speed: .8, time: 1.3, label: 'Гайка затянута', fx: 390, fy: 220,
+    hint: 'Ключ на гайку: зажми кнопку мыши / Space, пока метка в зелёной зоне. Вылетела из зоны — гайка слетает назад.', dan: 'Не дёргай. Крути только когда метка в зелёном, иначе сорвёшь резьбу.',
+    bg: (g, t, p, hold) => { faucetDraw(g, t, p < .9, { dry: false }); g.save(); g.translate(390, 225); g.rotate(p * 2.4 + (hold ? Math.sin(t * 22) * .05 : 0)); box(g, -8, -90, 16, 100, 6, lg(g, -8, 0, 8, 0, ['#c2512f', '#e58a60', '#8e3a20'])); ell(g, 0, 0, 24, 24, '#89949a'); g.restore(); },
+    next: () => { r.bark('faucet', 'hit'); r.go('test'); }
+  });
+  defs.faucet.stages.test = r => actStage(r, {
+    cat: 'faucet', label: 'Открыть воду', sub: 'проверить, не воет ли', sfx: 'water', bark: 'test', dur: 1.3,
+    hint: 'Осталось проверить: открой воду и послушай.', dan: 'Включи воду и прислушайся. Если не воет — всё.',
+    draw: (g, t, k) => { faucetDraw(g, t, false, { dry: k <= 0 }); if (k > .1) { box(g, 150, 330, 460, 10, 0, 'rgba(120,180,220,.35)'); } },
+    next: () => { r.bark('faucet', 'closed'); r.bark('faucet', 'done'); r.win(); }
+  });
+  /* ---------- toilet ---------- */
+  defs.toilet = {
+    title: 'Унитаз', anim: 'inspect', first: 'scrub', isDone: S => !!S.f.toiletClean && !!S.f.flushFixed,
+    init(r) { if (!r.m.stage) r.m.stage = 'scrub'; return r.m.stage; }, pips: pipsOf(['scrub', 'button', 'flush'], ['Отмыть', 'Кнопка', 'Слив']), stages: {}
+  };
+  function toiletBg(g, t, o) {
+    o = o || {}; tileWall(g, 0, 0, W, 400, '#cfd8d6', '#8b9693', 56, 8); box(g, 0, 330, W, 70, 0, '#7a6a55');
+    box(g, 280, 70, 200, 120, 14, lg(g, 280, 70, 480, 190, ['#f2f5f6', '#b9c3c7'])); box(g, 360, 76, 40, 18, 6, o.btn === 'broken' ? '#7a7f84' : '#e9eef0');
+    g.fillStyle = lg(g, 0, 190, 0, 340, ['#f5f7f8', '#a9b4b8']); g.beginPath(); g.moveTo(250, 190); g.lineTo(510, 190); g.quadraticCurveTo(520, 300, 440, 330); g.lineTo(320, 330); g.quadraticCurveTo(240, 300, 250, 190); g.fill();
+    ell(g, 380, 205, 118, 30, '#2f3a3d'); ell(g, 380, 202, 106, 24, o.water || '#4a6a66'); box(g, 220, 180, 320, 14, 6, lg(g, 0, 180, 0, 194, ['#fdfdfd', '#c9d1d4']));
+  }
+  defs.toilet.stages.scrub = r => {
+    const areas = [{ x: 300, y: 205, rx: 50, ry: 14, th: 1.8, col: '#6e5a2a' }, { x: 460, y: 208, rx: 46, ry: 14, th: 1.8, col: '#6e5a2a' }, { x: 380, y: 235, rx: 90, ry: 16, th: 1.5, col: '#8a7a3a' }, { x: 330, y: 260, rx: 40, ry: 20, th: 1.4, col: '#5a6a2a' }, { x: 440, y: 270, rx: 36, ry: 22, th: 1.4, col: '#5a6a2a' }, { x: 380, y: 130, rx: 90, ry: 30, th: 1.0, col: '#9aa07a' }];
+    return scrubStage(r, {
+      key: 'cells', areas, seed: 63, cat: 'toilet', start: 'inspect', prog: 'cleaner', tool: 'brush', anim: 'scrubToilet', label: 'Чистота унитаза', brush: 28,
+      hint: 'Унитаз в страшном состоянии. Ёршиком води по бурым и зелёным разводам (стрелки + Space).', dan: 'Ёршик, жёсткое трение, никакого героизма. Пятна на ободе и в чаше.',
+      bg: (g, t) => toiletBg(g, t, { btn: 'broken' }),
+      next: () => { r.bark('toilet', 'scrub'); r.go('button'); }
+    });
+  };
+  const TBP = [{ id: 'spring', n: 'Пружина кнопки', x: 330, y: 110, w: 64, h: 36, right: 1, info: '' }, { id: 'lever', n: 'Рычаг поплавка', x: 410, y: 110, w: 64, h: 36, right: 0, info: 'Рычаг целый. Ищи то, что сломано в кнопке.' }, { id: 'cap', n: 'Колпачок', x: 330, y: 160, w: 64, h: 30, right: 0, info: 'Колпачок просто красивый, он не пружина.' }, { id: 'chain', n: 'Цепочка', x: 410, y: 160, w: 64, h: 30, right: 0, info: 'Цепочка тут вообще из другой оперы.' }];
+  defs.toilet.stages.button = r => pickStage(r, {
+    cat: 'toilet', start: 'cistern', right: 'right', wrong: 'wrong', rightTxt: 'пружина!',
+    hint: 'Кнопка слива западает. Открыта крышка бачка: найди сломанную пружину и поставь её на место.', dan: 'Пружина кнопки — маленькая, блестящая, вот-вот выскочит. Не рычаг и не цепочка.',
+    targets: () => TBP.map(p => ({ id: p.id, x: p.x, y: p.y, w: p.w, h: p.h, label: p.n, info: p.info, right: p.right })),
+    draw: (g, t, sel, done) => { toiletBg(g, t, { btn: 'broken' }); box(g, 300, 90, 190, 110, 8, 'rgba(25,30,32,.88)'); for (const p of TBP) { box(g, p.x, p.y, p.w, p.h, 6, p.right ? (done ? '#c8d0d3' : '#b8860b') : '#6e777b'); } if (!done) { g.save(); g.globalAlpha = .1 + .07 * Math.sin(t * 8); g.fillStyle = '#ffe9a0'; g.fillRect(330, 110, 64, 36); g.restore(); } },
+    next: () => { r.bark('toilet', 'clip'); r.go('flush'); }
+  });
+  defs.toilet.stages.flush = r => actStage(r, {
+    cat: 'toilet', label: 'Нажать слив', sub: 'проверить кнопку', sfx: 'toiletFlush', bark: 'test', dur: 1.4,
+    hint: 'Кнопка починена. Нажми слив и посмотри, не выкинул ли ты вместе с мусором здравый смысл.', dan: 'Жми слив. Если уходит — готово.',
+    draw: (g, t, k) => { toiletBg(g, t, { water: k > 0 ? 'rgba(120,180,200,1)' : null }); if (k > 0) for (let i = 0; i < 8; i++) { const a = k * 6 + i; ell(g, 380 + Math.cos(a) * 60 * (1 - k * .5), 210 + Math.sin(a) * 12, 4, 3, 'rgba(220,240,250,.7)'); } },
+    next: () => { r.bark('toilet', 'done'); r.win(); }
+  });
+  /* ---------- printer ---------- */
+  defs.printer = {
+    title: 'Принтер Bambu Lab', anim: 'inspect', first: 'cover', isDone: S => !!S.f.printerFixed,
+    init(r) { if (!r.m.stage) r.m.stage = 'cover'; r.loop('printerError', false); return r.m.stage; },
+    pips: pipsOf(['cover', 'pull', 'feed'], ['Открыть', 'Достать', 'Продавить']), stages: {}
+  };
+  function printerBg(g, t, o) {
+    o = o || {}; box(g, 0, 0, W, 400, 0, lg(g, 0, 0, 0, 400, ['#2b2f35', '#15171a'])); box(g, 150, 60, 460, 290, 14, lg(g, 0, 60, 0, 350, ['#3a4048', '#1f2328']));
+    box(g, 170, 80, 420, 220, 8, o.open ? 'rgba(10,12,14,.9)' : 'rgba(120,150,170,.35)'); box(g, 210, 290, 340, 30, 4, '#4a525a'); ell(g, 380, 330, 190, 16, 'rgba(0,0,0,.35)');
+    ell(g, 600, 90, 8, 8, o.err ? (Math.sin(t * 8) > 0 ? '#ff3a2a' : '#4a1410') : '#5ac85a'); txt(g, o.err ? 'ОШИБКА: ЗАСОР' : 'ГОТОВ', 380, 48, { font: '800 16px ' + FONT, color: o.err ? '#ff8a7a' : '#8fe08f', align: 'center' });
+  }
+  const FIL = [[260, 150, 60], [380, 190, 70], [470, 140, 55]];
+  defs.printer.stages.cover = r => actStage(r, {
+    cat: 'printer', start: 'start', bark: 'open', label: 'Открыть крышку', sub: 'принтер выдал «ошибку подачи»', sfx: 'doorOpen', dur: .9,
+    hint: 'Принтер Bambu Lab встал: «ошибка подачи». Открой верхнюю крышку и посмотри, что там.', dan: 'Сначала крышку. Потом смотрим, что за спагетти внутри.',
+    draw: (g, t, k) => printerBg(g, t, { err: true, open: k > .4 }),
+    next: () => r.go('pull')
+  });
+  defs.printer.stages.pull = r => {
+    const m = r.m; m.pulled = m.pulled || []; let drag = null, endT = -1;
+    const left = () => FIL.map((f, i) => i).filter(i => m.pulled.indexOf(i) < 0);
+    return {
+      hint: 'Внутри клубки филамента. Перетащи каждый клубок вниз за пределы принтера (или тапни).', anim: 'tinker', ownClick: true, kb: 'targets', dan: 'Три клубка пластика. Тащи их вниз и не рви сопло.',
+      targets: () => left().map(i => ({ id: 'f' + i, x: FIL[i][0] - 40, y: FIL[i][1] - 30, w: 80, h: 60, label: 'Клубок филамента', i })),
+      enter() { r.bark('printer', 'stuck'); r.setInfo('Клубков осталось: ' + left().length); },
+      pick(tg) { pull(tg.i); },
+      ptr(type, x, y) {
+        if (type === 'down') { for (const tg of r.targets()) if (inRect(tg, x, y)) { drag = { i: tg.i, x, y }; r.sfx('pickup'); break; } }
+        else if (type === 'move' && drag) { drag.x = x; drag.y = y; }
+        else if (type === 'up' && drag) { const d = drag; drag = null; if (r.pmoved < 10 || d.y > 300) pull(d.i); }
+      },
+      tick(dt) { if (endT >= 0) { endT += dt; if (endT > .9) { endT = -1; r.bark('printer', 'cleared'); r.go('feed'); } } },
+      draw(g, t) {
+        printerBg(g, t, { err: true, open: true });
+        FIL.forEach((f, i) => { if (m.pulled.indexOf(i) >= 0) return; let x = f[0], y = f[1]; if (drag && drag.i === i) { x = drag.x; y = drag.y; } g.strokeStyle = ['#e0643a', '#4aa3e0', '#e8d24a'][i]; g.lineWidth = 5; g.lineCap = 'round'; g.beginPath(); for (let k = 0; k < 14; k++) { const a = k * .9 + t * .3, rr_ = 6 + k * 2.4; g.lineTo(x + Math.cos(a) * rr_ * 1.3, y + Math.sin(a) * rr_ * .8); } g.stroke(); });
+        FIL.forEach((f, i) => { if (m.pulled.indexOf(i) >= 0) ell(g, 200 + i * 160, 372, 30, 8, ['#e0643a', '#4aa3e0', '#e8d24a'][i]); });
+        vignette(g, .3);
+      }
+    };
+    function pull(i) { if (m.pulled.indexOf(i) >= 0 || endT >= 0) return; m.pulled.push(i); r.good(); r.sfx('scrapeTube'); r.floatText(FIL[i][0], FIL[i][1] - 20, 'вытащил', '#b6e08a'); r.setInfo('Клубков осталось: ' + left().length); if (left().length === 0) endT = 0; else r.bark('printer', 'pulled'); }
+  };
+  defs.printer.stages.feed = r => holdStage(r, {
+    cat: 'printer', start: 'plug', slip: 'feedLow', zone: [.38, .66], speed: .7, time: 1.2, label: 'Подача восстановлена', anim: 'tinker', fx: 380, fy: 240,
+    hint: 'Продави новый филамент: зажми кнопку / Space, пока метка в зелёной зоне. Слишком слабо или сильно — заедает.', dan: 'Не дави как танк. Подавай, пока метка ровно в зелёном.',
+    bg: (g, t, p, hold) => { printerBg(g, t, { open: true, err: p < 1 }); g.strokeStyle = '#e0643a'; g.lineWidth = 5; g.beginPath(); g.moveTo(380, 80); g.lineTo(380, 80 + 200 * p); g.stroke(); },
+    next: () => { r.bark('printer', 'done'); r.win(); }
+  });
+  /* ---------- vacuum jam ---------- */
+  defs.vacJam = {
+    title: 'Пылесос заклинило', anim: 'pickup', first: 'find', isDone: S => !S.f.vacJam,
+    init(r) { r.m.stage = 'find'; return 'find'; }, pips: pipsOf(['find'], ['Достать']), stages: {}
+  };
+  const VJ = [{ id: 'sock', n: 'Носок', x: 330, y: 200, w: 100, h: 50, right: 1, info: '' }, { id: 'cable', n: 'Кабель', x: 200, y: 260, w: 110, h: 36, right: 0, info: 'Кабель не мешает. Ищи то, что застряло в трубе.' }, { id: 'cap', n: 'Крышка', x: 470, y: 250, w: 90, h: 46, right: 0, info: 'Крышка на месте.' }];
+  defs.vacJam.stages.find = r => pickStage(r, {
+    cat: 'vacJam', start: 'start', right: 'found', wrong: 'wrong', rightTxt: 'носок!',
+    hint: 'Пылесос взвыл и встал. В трубе что-то застряло. Тапни по тому, что надо вытащить.', dan: 'Скорее всего носок. Они всегда во всём виноваты.',
+    targets: () => VJ.map(p => ({ id: p.id, x: p.x, y: p.y, w: p.w, h: p.h, label: p.n, info: p.info, right: p.right })),
+    draw: (g, t, sel, done) => { box(g, 0, 0, W, 400, 0, lg(g, 0, 0, 0, 400, ['#6a5a48', '#3b3026'])); box(g, 180, 120, 400, 120, 20, lg(g, 0, 120, 0, 240, ['#7a8aa0', '#3a4658'])); ell(g, 380, 330, 260, 24, 'rgba(0,0,0,.3)'); if (!done) { box(g, 330, 200, 100, 50, 14, '#c7a2d0'); ell(g, 360, 215, 10, 5, '#fff'); } for (const p of VJ) if (!p.right) box(g, p.x, p.y, p.w, p.h, 10, '#4a4f55'); },
+    next: () => { r.bark('vacJam', 'done'); r.win(); }
+  });
+
+  /* ============================================================================
      PUBLIC API
      ========================================================================== */
   function start(id, S, onDone) {
