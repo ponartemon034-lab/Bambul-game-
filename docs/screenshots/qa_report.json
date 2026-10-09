@@ -1,0 +1,35 @@
+{
+ "checks": [
+  {
+   "name": "world built",
+   "pass": true,
+   "info": {
+    "ms": 1663
+   }
+  },
+  {
+   "name": "hero/door scale",
+   "pass": true,
+   "info": {
+    "hero": 284.8,
+    "door": 339.2,
+    "ratio": 0.839622641509434
+   }
+  },
+  {
+   "name": "parallax layers distinct",
+   "pass": true,
+   "info": [
+    1,
+    0.8024691358024691,
+    0.2
+   ]
+  },
+  {
+   "name": "avg frame ms (headless sw render)",
+   "pass": false,
+   "info": "77.5"
+  }
+ ],
+ "errors": []
+}

@@ -370,10 +370,10 @@
 
   /* ----------------------------------------------------------- reflections */
   function reflectPass(g, list, S, t, glossMax) {
-    if (!Q.reflect || glossMax <= 0) return;
-    const w = Math.ceil(V.W / 2), h = Math.ceil(V.H / 2);
+    if (!Q.reflect || glossMax <= .12) return;
+    const w = Math.ceil(V.W / 3), h = Math.ceil(V.H / 3);
     if (!refl || refl.width !== w || refl.height !== h) { refl = mk(w, h); rg = refl.getContext('2d'); }
-    rg.setTransform(1, 0, 0, 1, 0, 0); rg.clearRect(0, 0, w, h); rg.setTransform(.5, 0, 0, .5, 0, 0);
+    rg.setTransform(1, 0, 0, 1, 0, 0); rg.clearRect(0, 0, w, h); rg.setTransform(1 / 3, 0, 0, 1 / 3, 0, 0);
     let any = false;
     for (const o of list) {
       if (!o.reflect) continue;
@@ -390,7 +390,7 @@
     }
     if (!any) return;
     rg.setTransform(1, 0, 0, 1, 0, 0); rg.globalCompositeOperation = 'destination-in';
-    const gr = rg.createLinearGradient(0, V.floorY / 2, 0, V.H / 2); gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(.75, 'rgba(0,0,0,.25)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    const gr = rg.createLinearGradient(0, V.floorY / 3, 0, V.H / 3); gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(.75, 'rgba(0,0,0,.25)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
     rg.fillStyle = gr; rg.fillRect(0, 0, w, h); rg.globalCompositeOperation = 'source-over';
     g.save(); g.imageSmoothingEnabled = true; g.drawImage(refl, 0, 0, V.W, V.H); g.restore();
   }

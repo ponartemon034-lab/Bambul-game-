@@ -196,7 +196,74 @@
   }
 
   const objects = [], lights = [];
-  /*@@OBJECTS@@*/
+    /* ---- furniture ---- */
+  function fridgeBody(g, w, h, st) {                       // st: closed | dirty | clean
+    const open = st !== 'closed';
+    rr(g, 0, 0, w, h, 3, '#2a2a2c');
+    if (!open) {
+      face(g, 1.5, 1.5, w - 3, h * .3 - 1, '#e6e2d4', { r: 2 }); face(g, 1.5, h * .3 + 1, w - 3, h * .7 - 2.5, '#dedacb', { r: 2 });
+      rect(g, 1.5, h * .3 - .4, w - 3, 1.6, '#8a877c');
+      rr(g, w - 9, 14, 3.4, 34, 1.7, '#9a9a9a'); rr(g, w - 9, h * .3 + 14, 3.4, 60, 1.7, '#9a9a9a');
+      const cols = ['#c2512f', '#d9a93a', '#35506b', '#4b7a45', '#8a2a50'];
+      for (let i = 0; i < 7; i++) rr(g, 8 + (i * 17) % 40, 18 + (i * 29) % 90, 7, 6, 1.5, cols[i % 5]);
+      rect(g, 14, 70, 30, 22, '#f3efdf'); rect(g, 17, 75, 24, .8, '#999'); rect(g, 17, 80, 20, .8, '#999'); rect(g, 17, 85, 22, .8, '#999');
+      txt(g, 'ВОЗЬМИ ХЛЕБ', 29, 108, 7, '#3a3a6a', -.04);
+      dirt(g, 1.5, 1.5, w - 3, h - 3, 11, .9); aoEdges(g, 1.5, 1.5, w - 3, h - 3, 3, .3); shineV(g, 1.5, 1.5, w - 3, h - 3, .12);
+      return;
+    }
+    const dirty = st === 'dirty';                          // interior of an open fridge
+    rect(g, 4, 3, w - 8, h - 6, dirty ? '#bfc8b0' : '#e8f0f2');
+    for (let i = 0; i < 5; i++) { const y = 8 + i * (h - 20) / 5; rect(g, 4, y + 24, w - 8, 2, dirty ? '#8a9a7a' : '#c9d7da'); rect(g, 4, y + 26, w - 8, 3, 'rgba(0,0,0,.18)');
+      const r = R(40 + i * 3 + (dirty ? 0 : 50));
+      for (let k = 0; k < 3; k++) { const x = 8 + k * 17 + r() * 4, bad = dirty && r() < .75, c = bad ? ['#6b8a3a', '#7a5a2a', '#8f9f4a', '#5a6a3a'][(r() * 4) | 0] : ['#e8d7a0', '#3a6a9a', '#d8d4c8'][k];
+        rr(g, x, y + 8 + (k % 2) * 3, 11 + r() * 4, 15 - (k % 2) * 3, 2, c); if (bad) { A.glow(g, x + 6, y + 14, 8, 'rgba(120,150,40,.35)'); } } }
+    if (dirty) { dirt(g, 4, 3, w - 8, h - 6, 12, 1.4, 'rgba(70,90,20,'); A.glow(g, w / 2, h * .5, 40, 'rgba(110,140,40,.22)'); }
+    rect(g, 3, 3, 3, h - 6, 'rgba(0,0,0,.25)'); rect(g, w - 6, 3, 3, h - 6, 'rgba(0,0,0,.2)');
+    face(g, -10, 2, 10, h - 4, '#d6d2c4', { r: 1 });         // swung-open door edge
+  }
+  const fridgeVar = S => F(S, 'fridgeOpen') ? (F(S, 'fridgeDone') ? 'clean' : 'dirty') : 'closed';
+  objects.push({ id: 'fridge', x: 65, z: 108, w: 66, h: 185, depth: 58, bake: { closed: (g, w, h) => fridgeBody(g, w, h, 'closed'), dirty: (g, w, h) => fridgeBody(g, w, h, 'dirty'), clean: (g, w, h) => fridgeBody(g, w, h, 'clean') }, variant: fridgeVar, shadow: { w: 38, a: .5 },
+    dyn: (g, t, S) => { if (fridgeVar(S) === 'dirty') { g.strokeStyle = 'rgba(150,190,60,.55)'; g.lineWidth = 1.2; for (let i = 0; i < 3; i++) { const bx = 14 + i * 16, o = (t * 14 + i * 20) % 50; g.globalAlpha = 1 - o / 50; g.beginPath(); for (let y = 0; y < 22; y += 3) { const yy = -6 - o - y; g.lineTo(bx + Math.sin((yy + t * 30) * .15) * 3, yy); } g.stroke(); } g.globalAlpha = 1; for (let i = 0; i < 4; i++) { g.fillStyle = '#111'; g.fillRect(30 + Math.sin(t * 3 + i * 2) * 22, 60 + Math.cos(t * 2.3 + i) * 40, 1.2, 1.2); } } } });
+
+  function counterBody(g, w, h, clean) {
+    rr(g, 0, 18, w, h - 18, 2, '#3b3a34'); face(g, 3, 24, w - 6, h - 28, '#8f8a72', { r: 1.5 });
+    [[8, 70], [84, 60], [150, 62]].forEach(([x, cw], i) => { rr(g, x, 30, cw, h - 44, 1.5, 'rgba(0,0,0,.14)'); rect(g, x + cw - 10, 46 + (i % 2) * 6, 2.6, 16, '#5a5a52'); });
+    rect(g, 2, 8, w - 4, 10, '#6a6a68'); rect(g, 2, 8, w - 4, 2.4, '#a0a29e'); rect(g, 2, 17.4, w - 4, 1.2, 'rgba(0,0,0,.5)');          // worktop
+    rr(g, 62, 7, 80, 12, 3, '#7c8288'); rr(g, 66, 9, 72, 8, 3, '#3a4046'); A.glow(g, 100, 10, 24, 'rgba(255,255,255,.25)');                      // sink basin
+    rect(g, 98, -24, 5, 30, '#b9bec4'); rr(g, 90, -29, 26, 7, 3.5, '#c9ced4'); rect(g, 112, -26, 2.4, 9, '#b9bec4'); rect(g, 94, 2, 2, 8, '#a0a4aa'); // tap
+    dirt(g, 2, 8, w - 4, h - 8, 21, clean ? .15 : 1.1);
+  }
+  function dishes(g, dirty) {                                // pile on the draining board / in the sink
+    if (!dirty) { for (let i = 0; i < 4; i++) A.ell(g, 170 + i * 0, 5 - i * 2.2, 12, 2.6, i % 2 ? '#f7f3e8' : '#ffffff'); A.ell(g, 170, 1, 12, 2.6, '#e7e7e0'); rr(g, 190, -10, 8, 18, 1.5, 'rgba(160,200,230,.5)'); return; }
+    for (let i = 0; i < 6; i++) { A.ell(g, 96 + (i % 3) * 7 - 7, 4 - i * 3.4, 15, 3.2, i % 2 ? '#e4dfd0' : '#cfc9b6'); A.ell(g, 96 + (i % 3) * 7 - 7, 3 - i * 3.4, 12, 2.2, 'rgba(110,80,30,.45)'); }
+    rr(g, 70, -14, 16, 22, 2, '#8fb0c8'); rr(g, 120, -10, 18, 14, 2, '#55555e'); A.line(g, 138, -6, 154, -14, '#55555e', 3); A.ell(g, 156, -14, 6, 2.6, '#6b4a1a');
+    rr(g, 160, 0, 22, 8, 2, '#b5482f'); A.glow(g, 98, -6, 30, 'rgba(70,90,30,.25)');
+  }
+  objects.push({ id: 'counter', x: 250, z: 108, w: 222, h: 126, depth: 58, bake: { dirty: (g, w, h) => { g.translate(0, 36); counterBody(g, w, 90, 0); }, clean: (g, w, h) => { g.translate(0, 36); counterBody(g, w, 90, 1); } }, variant: S => F(S, 'dishesDone') ? 'clean' : 'dirty', shadow: { w: 110, a: .5 } });
+  objects.push({ id: 'dishpile', x: 250 - 111, y: 90, z: 100, w: 222, h: 60, shadow: false, bake: { dirty: (g, w, h) => { g.translate(0, 38); dishes(g, 1); }, clean: (g, w, h) => { g.translate(0, 38); dishes(g, 0); } }, variant: S => F(S, 'dishesDone') ? 'clean' : 'dirty',
+    dyn: (g, t, S) => { if (!F(S, 'dishesDone')) { for (let i = 0; i < 3; i++) { const u = (t * .4 + i * .33) % 1; g.fillStyle = 'rgba(150,175,150,' + (.28 * (1 - u)) + ')'; g.beginPath(); g.arc(98 + Math.sin(t + i) * 8, 36 - u * 30, 4 + u * 5, 0, TAU); g.fill(); } } } });
+
+  objects.push({ id: 'cabinets', x: 250, y: 145, z: 150, w: 170, h: 72, depth: 28, bake: (g, w, h) => { rr(g, 0, 0, w, h, 2, '#3b2f22'); [0, 1, 2].forEach(i => { face(g, 3 + i * 55, 3, 52, h - 6, '#b4a072', { r: 1.5 }); rect(g, 8 + i * 55 + (i === 1 ? 0 : 38), h - 22, 2.4, 14, '#5a4a30'); }); dirt(g, 0, 0, w, h, 25, 1.2); aoEdges(g, 0, 0, w, h, 3, .35); }, shadow: false });
+  objects.push({ id: 'cabinets2', x: 470, y: 145, z: 150, w: 110, h: 72, depth: 28, shadow: false, bake: (g, w, h) => { rr(g, 0, 0, w, h, 2, '#3b2f22'); [0, 1].forEach(i => face(g, 3 + i * 53, 3, 50, h - 6, '#a99568', { r: 1.5 })); dirt(g, 0, 0, w, h, 26, 1.3); aoEdges(g, 0, 0, w, h, 3, .35); } });
+
+  function stove(g, w, h) {
+    rr(g, 0, 8, w, h - 8, 2, '#26262a'); face(g, 2, 12, w - 4, h - 16, '#cfcbbe', { r: 1.5 });
+    rr(g, 7, 30, w - 14, 40, 3, '#26262d'); rr(g, 11, 34, w - 22, 28, 2, '#3b3b46'); A.glow(g, 20, 40, 14, 'rgba(255,255,255,.15)');
+    for (let i = 0; i < 4; i++) A.ell(g, 12 + i * 12, 18, 3.2, 3.2, '#2b2b30'); rect(g, 0, 8, w, 5, '#1a1a1e');
+    A.ell(g, 18, 8, 12, 3, '#33333a'); A.ell(g, 44, 8, 12, 3, '#33333a'); rr(g, 36, -4, 26, 6, 3, '#2a2a30'); rect(g, 60, -2, 22, 3, '#2a2a30'); A.ell(g, 46, -4, 12, 2.4, '#6b4a1a');
+    dirt(g, 2, 12, w - 4, h - 16, 31, 1.6, 'rgba(60,40,10,');
+  }
+  objects.push({ id: 'stove', x: 410, z: 108, w: 62, h: 90, depth: 58, bake: stove, shadow: { w: 34, a: .5 } });
+  objects.push({ id: 'hood', x: 410, y: 148, z: 140, w: 74, h: 62, depth: 40, shadow: false, bake: (g, w, h) => { A.poly(g, [8, 38, w - 8, 38, w - 20, 8, 20, 8], '#8c8f94'); rect(g, 28, 0, 18, 10, '#7b7e83'); rect(g, 6, 38, w - 12, 10, '#5c5f64'); A.glow(g, w / 2, 50, 22, 'rgba(255,200,110,.5)'); dirt(g, 6, 8, w - 12, 44, 33, 1.3); } });
+  objects.push({ id: 'bin', x: 520, z: 50, w: 38, h: 62, depth: 26, bake: (g, w, h) => { A.poly(g, [3, h, w - 3, h, w, 10, 0, 10], '#4a6b4a'); rect(g, -1, 4, w + 2, 8, '#3a563a'); rect(g, 6, 20, 2, 36, 'rgba(0,0,0,.25)'); rect(g, w - 9, 20, 2, 36, 'rgba(0,0,0,.25)'); dirt(g, 0, 10, w, h - 10, 36, 1.2); },
+    dyn: (g, t, S) => { const n = F(S, 'binFill'); for (let i = 0; i < n; i++) { g.fillStyle = ['#23232b', '#d9d2c0', '#b5482f', '#3f6a3a', '#d9a93a'][i % 5]; g.beginPath(); g.ellipse(8 + (i * 7) % 24, 4 - (i % 3) * 3, 7, 5, i, 0, TAU); g.fill(); } } });
+  objects.push({ id: 'stool', x: 565, z: 30, w: 34, h: 46, depth: 30, bake: (g, w, h) => { rr(g, 0, 0, w, 6, 3, '#b5623a'); A.line(g, 6, 6, 3, h, '#3b3b46', 2.4); A.line(g, w - 6, 6, w - 3, h, '#3b3b46', 2.4); A.line(g, 7, 30, w - 7, 30, '#3b3b46', 1.6); A.rect(g, 8, -8, 12, 8, '#e9e4d8'); } });
+  objects.push({ id: 'pendant', x: 300, y: 212, z: 30, w: 40, h: 48, shadow: false, bake: (g, w, h) => { rect(g, w / 2 - .5, 0, 1, 20, '#17171c'); A.poly(g, [6, 40, w - 6, 40, w - 12, 20, 12, 20], '#d8d2b4'); rect(g, 6, 40, w - 12, 2.4, '#8a8470'); }, post: false });
+  objects.push({ id: 'bulbglow', x: 300, y: 196, z: 30, w: 30, h: 30, shadow: false, post: true, postMode: 'lighter', bake: (g, w, h) => A.glow(g, 15, 15, 15, 'rgba(255,245,220,.85)') });
+  objects.push({ id: 'fgcable', x: 150, y: 190, z: -80, w: 6, h: 70, blur: 1.6, shadow: false, bake: (g, w, h) => { A.cable(g, [[3, 0], [3, 60], [2, 70]], 1.6, '#0b0908'); A.rect(g, 0, 60, 6, 10, '#0b0908'); } });
+  lights.push({ x: 300, y: 205, z: 30, r: 460, color: '215,232,255', i: .95, flicker: .04 }, { x: 410, y: 160, z: 100, r: 210, color: '255,190,110', i: .6, bloom: .18 },
+    { x: 250, y: 165, z: 150, r: 280, color: '120,150,255', i: .42 }, { x: 65, y: 110, z: 60, r: 170, color: '240,255,230', i: .8, on: S => F(S, 'fridgeOpen') });
+
 
   BB.defineRoom({
     id: 'kitchen',
