@@ -356,7 +356,7 @@
     act(MINI_ANIM[id] || 'inspect', 0.5, () => {
       if (BB.S !== S) return;
       let started = false;
-      if (BB.mini && BB.mini.start) { try { BB.mini.start(id, S, r => finishMini(id, S, r)); started = true; } catch (e) { console.error('[tasks.mini]', id, e); } }
+      if (BB.mini && BB.mini.start) { try { started = !!BB.mini.start(id, S, r => finishMini(id, S, r)); } catch (e) { console.error('[tasks.mini]', id, e); } }
       if (!started) {                                 // fallback while minigames are not ready: a short timed job, still real state change
         warnOnce('mini', 'BB.mini missing - using timed fallback');
         const fb = MINI_FALLBACK[id] || [3, 'inspect', 8];

@@ -11,7 +11,7 @@ window.__tasksSelfTest = async function () {
   if (B.story && B.story._hook) { const i = B.hooks.update.indexOf(B.story._hook); if (i >= 0) B.hooks.update.splice(i, 1); }
   if (B.ui && B.ui.busy) await until(() => !B.ui.busy(), 8000);
   await sleep(300);
-  const fresh = () => { B.S = B.newState(480); B.S.mode = 'play'; B.paused = false; P.x = 300; P.y = 0; B.In.reset(); return B.S; };
+  const fresh = () => { B.S = B.newState(480); B.S.mode = 'play'; B.paused = false; P.force = null; P.locked = false; P.x = 300; P.y = 0; B.In.reset(); return B.S; };
   const free = () => until(() => !P.act && !P.walkTo, 6000);
   const hs = id => ({ id, ax: 0, r: 50 });
   const at = x => { __bb.teleport(x); };
@@ -100,6 +100,8 @@ window.__tasksSelfTest = async function () {
   at(B.abs('work', 405)); await sleep(80); T.interact(hs('toolbox'), S); await free(); await sleep(100);
   ok(S.tools.box === 1, 'toolbox taken');
 
+  // minigames have their own real-input suite (tools/test_mini.js); here the opened run is won programmatically
+  const autoWin = setInterval(() => { const R = B.mini && B.mini._R; if (R && !R.won) { R.won = true; try { R.close('win'); } catch (e) { } } }, 250);
   /* 5. vacuum (hold F) */
   S.active = 'hand';
   const d0 = S.dust[0]; at(d0.ax); await sleep(100);
@@ -205,5 +207,6 @@ window.__tasksSelfTest = async function () {
   /* 11. spam / nothing here */
   S = fresh(); at(B.abs('hall', 110)); await sleep(60); let thrown = null; try { for (let i = 0; i < 20; i++) { T.nothingHere(); T.interact(hs('bin'), S); T.interact(hs('closet'), S); } } catch (e) { thrown = e; }
   await free(); ok(!thrown, 'spam does not throw'); ok(S.tools.vac === 1, 'spam closet gives tool exactly once');
+  clearInterval(autoWin);
   return { pass, fail: fails.length, fails, log };
 };
