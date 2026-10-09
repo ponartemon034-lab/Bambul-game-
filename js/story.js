@@ -632,6 +632,7 @@
       const hx = hallX(250);
       if (Math.abs(p.x - hx) > 600) BB.player.teleport(hx); else BB.player.walkTo(hx, null, true);
       if (n) { n.hidden = false; n.x = 20; n.y = 0; n.dir = 1; n.state = 'walk'; }
+      try { BB.dlg && BB.dlg.bark('owner:comes', {}, { force: true }); } catch (e) { }
       E.lx = 20; BB.cam.focus = { x: hx - 60, zoom: 1.1 };
     } else if (ph === 'greet') {
       if (n) { n.state = 'idle'; n.dir = 1; }
@@ -650,6 +651,7 @@
       E.verdict = true;
       runDialog(lines, () => enterPhase('result'), {});
     } else if (ph === 'result') {
+      try { if (E.end && (E.end.tier === 'good' || E.end.tier === 'ok' || E.end.tier === 'secret')) BB.dlg && BB.dlg.bark('owner:left', {}, { force: true }); } catch (e) { }
       finish();
     }
   }

@@ -28,19 +28,22 @@
       if (!on() || !text) return; who = PROFILE[who] ? who : 'bamboul';
       const rawKey = fnv(who + '|' + norm(text)), clip = MAN && MAN[rawKey];
       if (clip && typeof Audio !== 'undefined' && !(BB.CFG && BB.CFG.voice === false)) {
-        try { if (cur) { cur.pause(); cur = null; } ss && ss.cancel(); const a = new Audio('assets/voice/' + clip); a.volume = Math.max(0, Math.min(1, (BB.CFG && BB.CFG.vol != null ? BB.CFG.vol : .7) * 1.3)); cur = a; a.play().catch(() => { cur = null; }); return; } catch (e) { /* fall through to speech */ }
+        try { if (cur) { cur.pause(); cur = null; } ss && ss.cancel(); const a = new Audio('assets/voice/' + clip); a.volume = Math.max(0, Math.min(1, (BB.CFG && BB.CFG.vol != null ? BB.CFG.vol : .7) * (BB.CFG && BB.CFG.voiceVol != null ? BB.CFG.voiceVol : 1) * 1.3)); cur = a; BB.voice.stats.clip++; a.play().catch(() => { cur = null; }); return; } catch (e) { /* fall through to speech */ }
       }
+      BB.voice.stats.fallback++;
       const clean = String(text).replace(/\*+/g, '').replace(/[\u{1F300}-\u{1FAFF}☀-➿]/gu, '').replace(/\s+/g, ' ').trim(); if (!clean) return;
       const now = performance.now(); if (clean === last && now - lastT < 1500) return; last = clean; lastT = now;
       try {
         ss.cancel();
         const u = new SpeechSynthesisUtterance(clean), p = PROFILE[who], v = pickVoice(who);
-        u.lang = 'ru-RU'; if (v) u.voice = v; u.pitch = p.pitch; u.rate = p.rate; u.volume = Math.max(0, Math.min(1, (BB.CFG && BB.CFG.vol != null ? BB.CFG.vol : .7) * 1.25));
+        u.lang = 'ru-RU'; if (v) u.voice = v; u.pitch = p.pitch; u.rate = p.rate; u.volume = Math.max(0, Math.min(1, (BB.CFG && BB.CFG.vol != null ? BB.CFG.vol : .7) * (BB.CFG && BB.CFG.voiceVol != null ? BB.CFG.voiceVol : 1) * 1.25));
         // shouting lines (mostly capitals) get louder and faster
         const caps = clean.replace(/[^А-ЯЁA-Z]/g, '').length / Math.max(1, clean.replace(/[^А-Яа-яЁёA-Za-z]/g, '').length); if (caps > .6) { u.rate += .12; u.pitch += .12; u.volume = 1; }
         ss.speak(u);
       } catch (e) { /* speech is a bonus: never break the game */ }
     },
+    isSpeaking() { return !!(cur && !cur.paused && !cur.ended) || !!(ss && ss.speaking); },
+    stats: { clip: 0, fallback: 0 },
     stop() { try { ss && ss.cancel(); if (cur) { cur.pause(); cur = null; } } catch (e) { } },
     _key: (who, text) => fnv(who + '|' + norm(text))
   };

@@ -136,3 +136,108 @@
   A('roomEnter:work', ['Так, где мой 3D-принтер... щас напечатаю эту ёбаную кнопку!']);
   A('cleanLow', ['Блядь, да тут ничего не изменилось! Хата как была говном, так и осталась!', 'Если он увидит это — я труп. Просто труп, нахуй.']);
 })();
+
+/* ===========================================================================
+   Voice-driven line set: the 60 "Bambul" lines + laundry lines, event router, emotion tags.
+   =========================================================================== */
+(function () {
+  'use strict';
+  const BB = window.BB = window.BB || {};
+  const dlg = BB.dlg; if (!dlg || !dlg.add) return;
+  const EMO = dlg.EMO = dlg.EMO || {};                           // exact text -> emotion (used by tools/collect_lines.js for TTS prosody)
+  const add = (cat, rows, w) => { dlg.add(cat, rows.map(r => ({ t: r[0], w: w || 1 }))); rows.forEach(r => { EMO[r[0]] = r[1]; }); };
+  const L = {
+    owner: [['Опять этот хозяин-пидорас едет. Ну чё ему опять надо, а?', 'annoyed'], ['О, начальничек пожаловал. Щас начнётся, блядь.', 'annoyed'], ['Да твою мать, ну дай человеку спокойно пожить!', 'angry'], ['Опять приехал проверять, как я тут страдаю. Сам бы, сука, поубирался.', 'annoyed'],
+      ['Чую, пиздец приближается. Это он ещё даже не зашёл.', 'grumble'], ['Ну здравствуй, моё персональное наказание.', 'grumble'], ['Только расслабился, блядь. Только, сука, расслабился!', 'angry'], ['А может, я дома? А может, меня вообще нет?', 'grumble']],
+    chore: [['Опять, сука, убираться. Ненавижу убираться!', 'angry'], ['Может, не сегодня. Может, не сейчас. Может, вообще никогда.', 'tired'], ['А нахуй эту уборку. Пусть всё гниёт, блядь.', 'angry'], ['Я сюда работать пришёл или остаток жизни с тряпкой провести?', 'annoyed'],
+      ['Пыль лежит — и пусть лежит. Она никому не мешает.', 'tired'], ['Вот кому мешает грязь, тот пусть её и убирает.', 'grumble'], ['Тряпка, ведро, грязь… Да это не работа, это какой-то ебаный круг ада.', 'angry'], ['Я щас пять минуточек посижу. Пять минуточек, и всё. Наверное.', 'tired'],
+      ['Да кто вообще придумал, что пол должен быть чистым?', 'annoyed'], ['Всё, начинаю уборку. Ну… морально начинаю.', 'tired'], ['Сначала надо собраться с мыслями. Потом с духом. Потом, может, и уберусь.', 'tired'], ['Пускай грязь сама осознает свои ошибки и уходит.', 'grumble']],
+    trash: [['Поднял одну бумажку. До пенсии осталось всего ничего.', 'tired'], ['Ещё один фантик. Карьера, блядь, мечты сбываются.', 'grumble'], ['Кто это насрал тут мусором? Хотя ладно, неважно. Я уже знаю ответ.', 'annoyed'], ['Подобрал. Выбросил. А жизнь-то мимо проходит.', 'tired'],
+      ['Да тут мусора больше, чем смысла в моей работе.', 'annoyed'], ['Бумажка к бумажке, день к дню — и вот я уже старый.', 'tired'], ['Интересно, если я сам лягу на пол, меня тоже в мусорку отправят?', 'grumble'], ['Ещё один кусок говна. Коллекция пополняется.', 'annoyed']],
+    faucet: [['Кран воет, блядь. Да заткнись ты уже!', 'angry'], ['Ну конечно, ещё и сантехника решила мне мозги выебать.', 'angry'], ['Кап-кап-кап… Да я щас сам начну капать, сука!', 'angry'], ['Это кран или соседский демон проснулся?', 'surprise'],
+      ['Я не сантехник! Я вообще сегодня работать не собирался!', 'angry'], ['Щас посмотрю, что там. Хотя нет, не посмотрю.', 'tired'], ['Вода течёт, нервы текут, жизнь течёт. Красота, блядь.', 'tired'], ['Пускай хозяин сам чинит. У него же руки есть. Наверное.', 'annoyed']],
+    tired: [['Всё. Я устал. Я ещё ничего не сделал, но уже всё.', 'tired'], ['Мне нужен отпуск. От работы, от людей и от этой ебаной реальности.', 'tired'], ['Сейчас посижу секунду. Если хозяин спросит — я в процессе.', 'grumble'], ['Почему восемь часов идут так долго, а выходные заканчиваются за секунду?', 'tired'],
+      ['У меня не лень. У меня энергосбережение, блядь.', 'annoyed'], ['Организм говорит работать, а душа уже уволилась.', 'tired'], ['Ещё одно задание — и я официально становлюсь мебелью.', 'tired'], ['Вот бы мне зарплату просто за то, что я сюда пришёл.', 'grumble']],
+    wait: [['Так, что у нас дальше? Правильно. Ничего.', 'tired'], ['Можно ведь и не делать. Главное — не палиться.', 'grumble'], ['Я не бездельничаю. Я анализирую рабочую обстановку.', 'grumble'], ['Щас начну. Вот прям щас. Ну, почти щас.', 'tired'],
+      ['Если долго смотреть на грязь, она становится частью интерьера.', 'grumble'], ['Работа не волк. Хотя хозяин, походу, считает иначе.', 'annoyed'], ['Сначала попью водички. Потом ещё попью. А там уже и вечер.', 'tired'], ['Время идёт, я сижу. У каждого своя работа.', 'tired']],
+    oops: [['Да ёбаный в рот, ну почему опять не работает?!', 'angry'], ['Я сделал всё правильно. Значит, виновата реальность.', 'annoyed'], ['Кто это придумал? Я хочу посмотреть ему в глаза и спросить: ты охуел?', 'angry'], ['Ну всё, приехали. Хотя мы вроде никуда не уезжали.', 'tired'],
+      ['Да чтоб меня этим ведром по голове!', 'angry'], ['А можно перемотать день до момента, когда я ещё спал?', 'tired']],
+    laundry: {
+      pick: [['Ну всё, теперь я ещё и прачка, блядь.', 'annoyed'], ['Носок. Один. Второй, как всегда, ушёл в закат.', 'tired'], ['Грязное бельё само себя в машину не закинет. Как удобно, сука.', 'annoyed'], ['Эта футболка уже стоит сама. Пора её уважать или сжечь.', 'grumble']],
+      load: [['Закидываю. Вонь такая, что машинка щас сама попросится в отпуск.', 'annoyed'], ['Всё в барабан. Что не отстирается, того у меня не было.', 'grumble'], ['Порошок, барабан, надежда. Классика жанра, блядь.', 'tired'], ['Ещё одна кучка стыда загружена. Жму кнопку.', 'grumble']],
+      start: [['Запустил стирку. Теперь осталось запустить свою жизнь.', 'tired'], ['Эта машинка работает активнее, чем я за всю неделю.', 'annoyed'], ['Крутись, родная. Хоть кто-то в этой квартире пашет.', 'relief'], ['Пошла, сука, пошла! Хоть что-то сегодня работает.', 'relief']],
+      wait: [['Надеюсь, хоть носки сегодня не разбегутся.', 'grumble'], ['Сорок минут стирки. Это сорок минут, чтобы ничего не делать. Святое дело.', 'tired'], ['Гудит, как мой холодильник. Только эта хотя бы честно работает.', 'grumble'], ['Если эта хрень сейчас зальёт соседей, я скажу, что меня тут не было.', 'annoyed']],
+      noise: [['Что она там так грохочет? Там что, кто-то дерётся?!', 'surprise'], ['Опять трясётся, как припадочная. Только не вздумай ходить по квартире, слышишь?!', 'annoyed']]
+    },
+    done: [['Всё, блядь, закончил. Теперь хотя бы пять секунд никто не трогает.', 'relief']],
+    left: [['Уехал? УЕХАЛ?! Всё, ребята, я снова свободный человек!', 'relief']],
+    move: [['Опять по этой хате, как по минному полю.', 'grumble'], ['Пять шагов туда, пять обратно. Вот и вся моя карьера.', 'tired'], ['Куда я вообще иду? А, ну да. Работать. Блядь.', 'tired'], ['Нахуй такой маршрут, лучше б я лежал.', 'grumble'], ['Ходи тут туда-сюда, как проклятый.', 'annoyed'], ['Да где она, эта хуйня, которая мне нужна?!', 'annoyed']]
+  };
+  // ---- pools (weights make the authored 60 lines come up often) ----
+  add('owner:comes', L.owner, 3); add('owner:left', L.left, 3); add('allDone', L.done, 3);
+  add('chore:avoid', L.chore, 2); add('tired', L.tired, 2); add('wait', L.wait, 2); add('oops', L.oops, 2); add('move', L.move, 1);
+  add('laundry:pick', L.laundry.pick); add('laundry:load', L.laundry.load); add('laundry:start', L.laundry.start); add('laundry:wait', L.laundry.wait); add('laundry:noise', L.laundry.noise);
+  add('pickup', L.trash, 2); add('toss', [L.trash[0], L.trash[3], L.trash[5]], 2);
+  add('faucet:open', [L.faucet[0], L.faucet[2], L.faucet[3], L.faucet[6]], 3); add('faucet:wrong', [L.faucet[1], L.faucet[4]], 3); add('faucet:inspect', [L.faucet[5], L.faucet[7]], 3); add('faucet:neighbours', [L.faucet[0], L.faucet[3]], 2);
+  add('mop:start', [L.chore[3], L.chore[6], L.chore[9]], 2); add('idle', L.chore.concat(L.tired), 1);
+  add('fail', L.oops, 2); add('spam', [L.oops[0], L.oops[3]], 1); add('success', L.done.concat(L.left), 0.5);
+  // ---- default emotion per category (used when a line has no explicit tag) ----
+  Object.assign(dlg.EMO_CAT = {}, { 'idle': 'tired', 'tired': 'tired', 'wait': 'tired', 'move': 'grumble', 'fail': 'angry', 'oops': 'angry', 'spam': 'annoyed', 'time:300': 'annoyed', 'time:120': 'angry', 'time:60': 'panic', 'time:30': 'panic', 'time:10': 'panic', 'success': 'relief', 'allDone': 'relief',
+    'owner:left': 'relief', 'owner:comes': 'annoyed', 'boom': 'surprise', 'jump': 'surprise', 'land': 'grumble', 'faucet:open': 'angry', 'faucet:wrong': 'angry', 'vac:snag': 'angry', 'fridge:disgust': 'surprise', 'fridge:open': 'surprise', 'toilet:flush': 'relief', 'faucet:done': 'relief', 'mop:done': 'relief', 'vac:done': 'relief', 'toilet:done': 'relief', 'printer:success': 'relief', 'cleanLow': 'annoyed' });
+
+  Object.assign(dlg._META, { 'owner:comes': { prio: 6, cd: 6 }, 'owner:left': { prio: 6, cd: 0 }, 'allDone': { prio: 5, cd: 0 }, 'tired': { prio: 1, cd: 35 }, 'wait': { prio: 1, cd: 30 }, 'move': { prio: 1, cd: 35 }, 'chore:avoid': { prio: 2, cd: 12 }, 'oops': { prio: 3, cd: 10 },
+    'laundry:pick': { prio: 2, cd: 6 }, 'laundry:load': { prio: 2, cd: 6 }, 'laundry:start': { prio: 3, cd: 6 }, 'laundry:wait': { prio: 1, cd: 14 }, 'laundry:noise': { prio: 1, cd: 14 } });
+  /* ------------------------------------------------------------ event router */
+  // gameplay modules bark with coarse categories; map them (plus their context) onto the real pools
+  const rnd = () => Math.random();
+  const orig = dlg.bark;
+  function route(cat, c) {
+    c = c || {};
+    switch (cat) {
+      case 'garbage':
+        if (c.bagFull || c.standFull || c.clothesFull) return 'bagFull';
+        if (c.clothes) return rnd() < .7 ? 'laundry:pick' : 'cloth';
+        if (c.clothesIn) return 'laundry:load';
+        if (c.toss != null || c.bin) return 'toss';
+        if (c.pickup != null) return 'pickup';
+        if (c.boxes || c.haul || c.haulHint) return 'boxes:jump';
+        if (c.boxesDone) return 'boxes:cleared';
+        if (c.nothing) return 'noTrash';
+        return 'pickup';
+      case 'vacuum': return c.jam ? (rnd() < .4 ? 'oops' : 'vac:snag') : c.done ? 'vac:done' : (rnd() < .4 ? 'chore:avoid' : 'vac:start');
+      case 'mop': return c.slip ? (rnd() < .5 ? 'oops' : 'mop:wet') : c.done ? 'mop:done' : (rnd() < .35 ? 'chore:avoid' : 'mop:start');
+      case 'tools': return c.need ? 'needTool:' + (['vac', 'mop', 'box'].indexOf(c.need) >= 0 ? c.need : 'box') : (rnd() < .4 ? 'chore:avoid' : 'tool:' + (['vac', 'mop', 'box'].indexOf(c.tool) >= 0 ? c.tool : 'box'));
+      case 'door': return 'door:ask';
+      case 'tv': return c.on ? 'tv:on' : 'tv:off';
+      case 'faucet': return 'faucet:neighbours';
+      case 'panic': return 'time:' + (c.t || 60);
+      case 'phoneRing': return c.intro ? 'phone:ring' : (rnd() < .6 ? 'owner:comes' : 'phone:ring');
+      case 'afterCall': return rnd() < .5 ? 'phone:hangup' : 'chore:avoid';
+      case 'idle': return c.stove || c.tub || c.window || c.laundry || c.id || c.nothing || c.useNothing || c.phone ? 'idle' : (rnd() < .5 ? 'chore:avoid' : 'idle');
+      case 'success': return c.all ? 'allDone' : 'success';
+      default: return cat;
+    }
+  }
+  dlg.route = route;
+  dlg.bark = function (cat, ctx, opts) { let r = route(cat, ctx); if (r === cat && !dlg._POOL[r] && ctx && ctx.event) { /* minigame style */ } return orig(dlg._POOL[r] ? r : cat, ctx, opts); };
+
+  /* ------------------------------------------------------ passive event hooks */
+  const T = { walk: 0, tiredAt: 0, waitAt: 0, lastAct: 0, washOn: 0, washBark: 0, last: { x: 0 } };
+  BB.hooks.update.push(function (dt, S, t) {
+    if (!S || S.mode !== 'play' || BB.paused) return; const P = BB.P; if (!P) return;
+    const busy = BB.ui && BB.ui.busy && BB.ui.busy();
+    // long walks -> short mumbling
+    const dx = Math.abs(P.x - T.last.x); T.last.x = P.x; if (dx < 40) T.walk += dx;
+    if (T.walk > 1100 && !busy) { T.walk = 0; dlg.bark('move', { S }); }
+    // waiting / doing nothing
+    const still = !P.act && Math.abs(P.vx) < 5 && !busy; T.waitAt = still ? T.waitAt + dt : 0;
+    if (T.waitAt > 26) { T.waitAt = 0; dlg.bark(rnd() < .55 ? 'wait' : 'tired', { S }); }
+    // accumulated effort -> tired
+    T.tiredAt += dt; if (T.tiredAt > 100 && !busy) { T.tiredAt = 0; dlg.bark('tired', { S }); }
+    // washing machine: start, wait, noise
+    const on = S.f && S.f.washerOn ? 1 : 0;
+    if (on && !T.washOn) { T.washBark = 0; setTimeout(() => dlg.bark('laundry:start', { S }, { force: true }), 900); }
+    T.washOn = on;
+    if (on) { T.washBark += dt; if (T.washBark > 4.5) { T.washBark = -99; dlg.bark(rnd() < .5 ? 'laundry:wait' : 'laundry:noise', { S }); } }
+  });
+})();

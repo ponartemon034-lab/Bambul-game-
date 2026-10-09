@@ -13,7 +13,7 @@
   const safe = (f, d) => { try { return f(); } catch (e) { console.error('[ui]', e); return d; } };
 
   /* ------------------------------------------------------------------ CFG */
-  const CFG_DEF = { vol: .7, music: true, sfx: true, musicVol: .8, sfxVol: 1, censor: false, subs: true, touch: false, quality: 'auto', realHero: true, voice: true, debug: false, muted: false };
+  const CFG_DEF = { vol: .7, music: true, sfx: true, musicVol: .8, sfxVol: 1, censor: false, subs: true, touch: false, quality: 'auto', realHero: true, voice: true, voiceVol: 1, debug: false, muted: false };
   let stored = {}; try { stored = JSON.parse(localStorage.getItem('bamboul.cfg') || '{}') || {}; } catch (e) { }
   const CFG = BB.CFG = Object.assign(BB.CFG || {}, CFG_DEF, stored);
   BB.saveCFG = () => { try { localStorage.setItem('bamboul.cfg', JSON.stringify(CFG)); } catch (e) { } };
@@ -585,6 +585,7 @@
       row('Громкость', slider('vol')), row('Музыка', slider('musicVol')), row('Звуки', slider('sfxVol')),
       row('Запикать мат', toggle('censor'), 'Звёздочки вместо крепких слов'),
       row('Реалистичный герой', toggle('realHero'), 'Выключи — будет мультяшный герой с полным набором поз'),
+      row('Громкость голоса', slider('voiceVol')),
       row('Озвучка голосом', toggle('voice', v => { if (!v && BB.voice) BB.voice.stop(); }), 'Реплики вслух голосом браузера/телефона (русский голос должен быть установлен)'),
       row('Субтитры звуков', toggle('subs'), 'Подписи вроде «[звонит телефон]»'),
       row('Сенсорное управление', toggle('touch', v => setTouch(v)), 'Всегда показывать стик и кнопки'),

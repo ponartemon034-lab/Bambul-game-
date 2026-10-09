@@ -35,3 +35,10 @@ The idle sprite is cut at load time into head / torso base (arms inpainted) / tw
 
 ## Update: generated voice-over
 832 spoken lines (Bamboul 653, landlord 111, Dan 68) synthesized offline with Piper TTS (ru_RU denis/dmitri/ruslan, tools/collect_lines.js -> tools/gen_voice.py -> tools/finalize_voice.py), pitch/tempo-shifted per character, stored as 24 kbps mp3 in assets/voice (11 MB). js/voice.js plays the clip matching the displayed line, falls back to browser speech for lines without a clip (e.g. numbers that vary). Not listened to by a human here: only file existence, key matching and level metering were checked.
+
+## Update: voice system v2 (Silero, emotions, 60 lines)
+* 1001 clips (13 MB) generated with Silero v4 + SSML emotions; replaces the Piper clips. See docs/VOICE.md.
+* Found and fixed: gameplay barks (`garbage`, `vacuum`, `mop`, `tools`, `panic`, `phoneRing`, `afterCall`) matched no dialogue pool and were silently dropped; they are now routed (tools/test_voice.js "router: no dead gameplay barks").
+* tools/test_voice.js: 11/11 (all pool lines have clips, 18 laundry lines, router, queued barks play from clips without browser-TTS fallback, one clip at a time, no repeats, laundry events produce spoken lines, toggle off silent, unknown line falls back safely, no errors).
+* Regression run: qa_run PASS (software-render frame time only), test_tasks OK, test_story 40-41/43 (tutorial-toast check is timing-flaky: same code passes/fails across runs; the two call-schedule checks fail as before), test_mini 18/22 (same 4 scripted-scrub failures), dlg_selftest 2 pre-existing failures.
+* Not verified by ear: voices were never listened to; only durations, levels, file keys and playback calls were checked.

@@ -6,10 +6,13 @@ const srv = http.createServer((q, r) => { let p = decodeURIComponent(q.url.split
 srv.listen(0, async () => {
   const br = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--no-sandbox'] }); const pg = await br.newPage();
   await pg.goto('http://localhost:' + srv.address().port + '/index.html?autostart=1'); await pg.waitForFunction(() => window.BB && BB.built); await pg.waitForTimeout(2500);
+  const mg = fs.readFileSync(path.join(root, 'js/minigames.js'), 'utf8').split('\n').slice(119, 307).join('\n');
+  const extra = [...mg.matchAll(/'((?:[^'\\\n]|\\.)*[А-Яа-яЁё](?:[^'\\\n]|\\.)*)'/g)].map(m => m[1].replace(/\\'/g, "'")).filter(s => s.length > 12 && /[А-Яа-я]{3}/.test(s));
+  await pg.evaluate(e => { window.__extra = e; }, extra);
   const out = await pg.evaluate(() => {
-    const res = new Map(), add = (who, t) => { if (!t || typeof t !== 'string') return; const k = who + '|' + t; if (!res.has(k)) res.set(k, { who, text: t }); };
+    const res = new Map(), add = (who, t, emo) => { if (!t || typeof t !== 'string') return; const k = who + '|' + t; if (!res.has(k)) res.set(k, { who, text: t, emo: emo || (BB.dlg.EMO && BB.dlg.EMO[t]) || null }); };
     const whoOf = cat => { const m = BB.dlg._meta ? BB.dlg._meta(cat) : null; return (m && m.who) || 'bamboul'; };
-    for (const cat in BB.dlg._POOL) for (const e of BB.dlg._POOL[cat]) add(whoOf(cat), e.t);
+    for (const cat in BB.dlg._POOL) for (const e of BB.dlg._POOL[cat]) add(whoOf(cat), e.t, (BB.dlg.EMO && BB.dlg.EMO[e.t]) || (BB.dlg.EMO_CAT && BB.dlg.EMO_CAT[cat]) || (/^(landlord)/.test(cat) ? 'angry' : null));
     const S = BB.S, base = JSON.parse(JSON.stringify(S));
     const ctxs = [];
     for (const time of [660, 480, 300, 180, 90, 40]) for (const done of [0, 1]) {
@@ -20,7 +23,7 @@ srv.listen(0, async () => {
     for (const id of ids) for (const c of ctxs) {
       for (const seed of [1, 2]) { try { BB.dlg._seed(seed); const lines = BB.dlg.script(id, c); for (const l of lines || []) { add(l.who, l.text); for (const ch of (l.choices || [])) { add('bamboul', ch.text); try { const more = ch.run && ch.run(); for (const m of (more || [])) add(m.who, m.text); } catch (e) { } } } } catch (e) { } }
     }
-    BB.dlg._unseed(); return [...res.values()].filter(x => x.who !== 'narr');
+    BB.dlg._unseed(); window.__extra && window.__extra.forEach(t => add('bamboul', t)); return [...res.values()].filter(x => x.who !== 'narr');
   });
   fs.writeFileSync('/tmp/lines.json', JSON.stringify(out)); const by = {}; out.forEach(o => by[o.who] = (by[o.who] || 0) + 1); console.log(out.length, JSON.stringify(by), 'chars', out.reduce((a, o) => a + o.text.length, 0));
   await br.close(); srv.close();
