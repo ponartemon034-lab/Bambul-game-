@@ -11,25 +11,41 @@
   const VS = 'attribute vec2 p;varying vec2 uv;void main(){uv=p*.5+.5;gl_Position=vec4(p,0.,1.);}';
   const FS = `precision highp float;varying vec2 uv;uniform sampler2D t;uniform vec2 px;uniform float amt;uniform float seed;
 float L(vec3 c){return dot(c,vec3(.299,.587,.114));}
+float skin(vec3 c){ // soft skin-tone mask (hue ~ orange, medium saturation, not too dark)
+  float mx=max(c.r,max(c.g,c.b)),mn=min(c.r,min(c.g,c.b)),d=mx-mn+1e-4,s=d/(mx+1e-4);
+  float ok=step(c.g,c.r)*step(c.b*.9,c.g)*smoothstep(.12,.2,s)*(1.-smoothstep(.6,.72,s))*smoothstep(.3,.42,mx);
+  float h=(c.g-c.b)/d; return ok*smoothstep(-.05,.2,h)*(1.-smoothstep(.75,1.,h));
+}
 void main(){
-  vec2 cc=uv-.5; float ab=dot(cc,cc)*1.1*amt;                                   // lens chromatic aberration (stronger at the edges)
-  vec3 c=vec3(texture2D(t,uv+cc*ab*.012).r,texture2D(t,uv).g,texture2D(t,uv-cc*ab*.012).b);
+  vec3 c=texture2D(t,uv).rgb;
   vec3 n=texture2D(t,uv+vec2(0.,px.y)).rgb,s=texture2D(t,uv-vec2(0.,px.y)).rgb,e=texture2D(t,uv+vec2(px.x,0.)).rgb,w=texture2D(t,uv-vec2(px.x,0.)).rgb;
-  float lc=L(c),ln=L(n),ls=L(s),le=L(e),lw=L(w);
-  float mn=min(lc,min(min(ln,ls),min(le,lw))),mx=max(lc,max(max(ln,ls),max(le,lw)));
-  // 1) edge-aware anti-aliasing: blend along strong luma edges only
-  vec3 avg=(n+s+e+w)*.25; float edge=smoothstep(.07,.30,mx-mn);
-  vec3 col=mix(c,mix(c,avg,.6),edge*amt);
-  // 2) contrast adaptive sharpening (less sharpening where contrast is already high)
-  float wgt=-1./mix(8.,5.,clamp(min(mn,1.-mx)/max(mx,.001),0.,1.))*(.45+.25*amt)*.62;
-  col=(col+wgt*(n+s+e+w))/(1.+4.*wgt);
-  // 3) local contrast / clarity
-  col+=(col-avg)*.11*amt;
-  // 4) filmic S-curve + slight saturation lift, dithering against banding
-  col=mix(col,col*col*(3.-2.*col),.10*amt);
-  float g=dot(col,vec3(.299,.587,.114)); col=mix(vec3(g),col,1.0+.04*amt);
-  float d=fract(sin(dot(gl_FragCoord.xy+seed,vec2(12.9898,78.233)))*43758.5453)-.5; col+=d/255.;
-  gl_FragColor=vec4(clamp(col,0.,1.),1.);
+  vec3 ne=texture2D(t,uv+px).rgb,nw=texture2D(t,uv+vec2(-px.x,px.y)).rgb,se=texture2D(t,uv+vec2(px.x,-px.y)).rgb,sw=texture2D(t,uv-px).rgb;
+  float lc=L(c);
+  // 1) edge-preserving denoise (bilateral 3x3): flattens grain/speckle, keeps real edges
+  vec3 acc=c*2.;float wsum=2.;
+  vec3 nb[8];nb[0]=n;nb[1]=s;nb[2]=e;nb[3]=w;nb[4]=ne;nb[5]=nw;nb[6]=se;nb[7]=sw;
+  for(int i=0;i<8;i++){float dl=abs(L(nb[i])-lc);float k=exp(-dl*dl*160.)*(i<4?1.:.7);acc+=nb[i]*k;wsum+=k;}
+  vec3 dn=acc/wsum; c=mix(c,dn,.5*amt);
+  // 2) skin: wider soft smoothing + warm subsurface glow, only on skin-coloured pixels
+  float sk=skin(c);
+  if(sk>.01){
+    vec3 b=c*1.;float bs=1.;
+    for(int i=0;i<8;i++){vec3 q=nb[i];float dl=abs(L(q)-lc);float k=exp(-dl*dl*260.)*skin(q);b+=q*k;bs+=k;}
+    b/=bs; vec3 sm=mix(c,b,.7);
+    vec3 warm=sm*vec3(1.045,1.0,.97); float sh=1.-smoothstep(.15,.7,lc);
+    sm+=vec3(.028,.006,0.)*sh;                                   // blood-under-skin tint in shadows
+    c=mix(c,mix(sm,warm,.5),sk*amt);
+  }
+  // 3) mild anti-aliasing on strong edges only
+  float mn=min(lc,min(min(L(n),L(s)),min(L(e),L(w)))),mx=max(lc,max(max(L(n),L(s)),max(L(e),L(w))));
+  float edge=smoothstep(.10,.34,mx-mn); c=mix(c,(n+s+e+w+c*2.)/6.,edge*.4*amt);
+  // 4) very light contrast-adaptive sharpen (kept tiny to avoid ringing/noise)
+  float wg=-1./mix(8.,5.,clamp(min(mn,1.-mx)/max(mx,.001),0.,1.))*.16*amt;
+  c=(c+wg*(n+s+e+w))/(1.+4.*wg);
+  // 5) gentle filmic curve, no visible dither
+  c=mix(c,c*c*(3.-2.*c),.07*amt);
+  float d=fract(sin(dot(gl_FragCoord.xy+seed,vec2(12.9898,78.233)))*43758.5453)-.5; c+=d/510.;
+  gl_FragColor=vec4(clamp(c,0.,1.),1.);
 }`;
   const G = BB.gl = { on: false, amt: 1, ok: false };
   BB.renderScale = 1;

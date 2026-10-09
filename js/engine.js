@@ -172,11 +172,11 @@
     g.restore(); g.save(); g.globalCompositeOperation = 'destination-in'; g.drawImage(mask, 0, 0); g.restore();
   };
   const TEXMAP = {
-    hall: { wall: ['Plaster007', 80, .5, .75], floor: ['Concrete012', 80, .6, .95] },
-    living: { wall: ['Plaster006', 90, .35, .7], floor: ['Planks037B', 90, .8, .95] },
-    kitchen: { wall: ['Plaster001', 80, .4, .7], floor: ['Concrete034', 90, .55, .95] },
-    bath: { wall: ['Concrete034', 100, .3, .65], floor: ['Tiles052', 60, .5, .9] },
-    work: { wall: ['Concrete012', 90, .45, .75], floor: ['Concrete034', 100, .65, .95] }
+    hall: { wall: ['Plaster007', 80, .42, .6], floor: ['Concrete012', 80, .6, .95] },
+    living: { wall: ['Plaster006', 90, .3, .55], floor: ['Planks037B', 90, .8, .95] },
+    kitchen: { wall: ['Plaster001', 80, .32, .55], floor: ['Concrete034', 90, .55, .95] },
+    bath: { wall: ['Concrete034', 100, .25, .5], floor: ['Tiles052', 60, .5, .9] },
+    work: { wall: ['Concrete012', 90, .35, .6], floor: ['Concrete034', 100, .65, .95] }
   };
 
   /* ---------------------------------------------- default procedural surfaces */
@@ -582,7 +582,7 @@
     // 6. grade: vignette + grain
     { const gr = g.createRadialGradient(V.W / 2, V.H * .52, V.H * .35, V.W / 2, V.H * .52, V.W * .72); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(4,3,8,.58)'); g.fillStyle = gr; g.fillRect(0, 0, V.W, V.H); }
     { g.save(); g.globalCompositeOperation = 'overlay'; const gg = g.createLinearGradient(0, 0, 0, V.H); gg.addColorStop(0, 'rgba(60,105,150,.16)'); gg.addColorStop(.55, 'rgba(0,0,0,0)'); gg.addColorStop(1, 'rgba(255,165,85,.12)'); g.fillStyle = gg; g.fillRect(0, 0, V.W, V.H); g.restore(); }
-    if (Q.grain && noiseC) { g.save(); g.globalCompositeOperation = 'overlay'; g.globalAlpha = .07; const ox = (t * 977 | 0) % 128, oy = (t * 631 | 0) % 128; for (let x = -ox; x < V.W; x += 128) for (let y = -oy; y < V.H; y += 128) g.drawImage(noiseC, x, y); g.restore(); }
+    if (Q.grain && noiseC) { g.save(); g.globalCompositeOperation = 'overlay'; g.globalAlpha = .02; const ox = (t * 977 | 0) % 128, oy = (t * 631 | 0) % 128; for (let x = -ox; x < V.W; x += 128) for (let y = -oy; y < V.H; y += 128) g.drawImage(noiseC, x, y); g.restore(); }
     if (BB.debug.on) drawDebug(g, S, t, vis);
   };
 
