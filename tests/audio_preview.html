@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BB.audio preview</title>
+<style>
+  :root{--bg:#15171c;--fg:#e8e6df;--mut:#8a8f9a;--acc:#f2b84b;--card:#1f232b;--ln:#2e343f}
+  *{box-sizing:border-box}
+  body{margin:0;padding:16px;background:var(--bg);color:var(--fg);font:14px/1.4 system-ui,sans-serif}
+  h1{font-size:18px;margin:0 0 4px} h2{font-size:13px;color:var(--acc);text-transform:uppercase;letter-spacing:.08em;margin:18px 0 6px}
+  .row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+  button{background:var(--card);color:var(--fg);border:1px solid var(--ln);border-radius:6px;padding:6px 10px;font:inherit;cursor:pointer}
+  button:hover{border-color:var(--acc)} button.on{background:var(--acc);color:#111}
+  label{display:flex;gap:8px;align-items:center;color:var(--mut)} input[type=range]{width:160px}
+  #meter{height:10px;background:var(--card);border-radius:5px;overflow:hidden;margin:8px 0;max-width:420px}
+  #meter i{display:block;height:100%;width:0;background:var(--acc)}
+  #log{font:12px/1.5 ui-monospace,monospace;color:var(--mut);min-height:40px;max-height:120px;overflow:auto;background:var(--card);padding:6px;border-radius:6px}
+  #room{color:var(--acc);font-weight:600}
+</style>
+</head>
+<body>
+<h1>BB.audio preview</h1>
+<div style="color:var(--mut)">Click anywhere first (autoplay policy). Everything is synthesized, no files.</div>
+<div id="meter"><i></i></div>
+<h2>Volume</h2>
+<div class="row">
+  <label>master <input id="vm" type="range" min="0" max="1" step=".01" value=".8"></label>
+  <label>music <input id="vmu" type="range" min="0" max="1" step=".01" value=".7"></label>
+  <label>sfx <input id="vs" type="range" min="0" max="1" step=".01" value=".9"></label>
+  <label><input id="subs" type="checkbox"> subtitles</label>
+</div>
+<h2>Spatial test (sfx x = world position)</h2>
+<div class="row"><label>camera x <input id="cam" type="range" min="0" max="3300" step="10" value="400"><span id="camv">400</span> <span id="room"></span></label>
+  <label>source x <input id="sx" type="range" min="0" max="3300" step="10" value="400"><span id="sxv">400</span></label>
+  <label><input id="usex" type="checkbox"> apply source x to buttons</label>
+  <label><input id="amb" type="checkbox" checked> room ambience</label></div>
+<h2>One-shots</h2><div class="row" id="sfx"></div>
+<h2>Voices (dialogue babble)</h2>
+<div class="row" id="voices"></div>
+<div class="row"><label>len (s) <input id="vlen" type="range" min=".1" max="3" step=".05" value="1.2"></label></div>
+<h2>Loops (toggle)</h2><div class="row" id="loops"></div>
+<h2>Music</h2>
+<div class="row"><button id="mus">music on/off</button><label>intensity <input id="mi" type="range" min="0" max="1" step=".01" value=".2"></label></div>
+<h2>Step</h2><div class="row" id="steps"></div>
+<h2>Events / subtitles</h2><div id="log"></div>
+
+<script src="../js/engine.js"></script>
+<script>
+window.BB = window.BB || {};
+if (!BB.LAYOUT) BB.LAYOUT = { rooms: [{id:'hall',x0:0,x1:600},{id:'living',x0:600,x1:1450},{id:'kitchen',x0:1450,x1:2050},{id:'bath',x0:2050,x1:2600},{id:'work',x0:2600,x1:3300}], roomOf(x){ for(const r of this.rooms) if(x<r.x1) return r; return this.rooms[4]; } };
+BB.cam = BB.cam || { x: 400 }; BB.cam.x = 400;
+BB.CFG = BB.CFG || { vol: .8, music: .7, sfx: .9, subs: false };
+BB.emit = BB.emit || function(){}; BB.on = BB.on || function(){};
+</script>
+<script src="../js/audio.js"></script>
+<script>
+const A = BB.audio, $ = id => document.getElementById(id);
+const L = A.list();
+function btn(parent, label, fn, cls){ const b = document.createElement('button'); b.textContent = label; b.onclick = () => { A.init(); fn(b); }; $(parent).appendChild(b); return b; }
+const opts = () => { const o = {}; if ($('usex').checked) o.x = +$('sx').value; return o; };
+const skip = new Set(['landlordVoice','danVoice','bamboulVoice']);
+L.sfx.filter(n => !skip.has(n)).forEach(n => btn('sfx', n, () => A.sfx(n, opts())));
+['landlordVoice','danVoice','bamboulVoice'].forEach(n => btn('voices', n, () => A.sfx(n, Object.assign(opts(), { len: +$('vlen').value }))));
+L.loops.forEach(n => btn('loops', n, b => { const on = !b.classList.contains('on'); b.classList.toggle('on', on); A.loop(n, on, opts()); }));
+btn('loops', 'stop all', () => { A.stopAll(); document.querySelectorAll('#loops .on').forEach(b => b.classList.remove('on')); });
+$('mus').onclick = () => { A.init(); const on = !$('mus').classList.contains('on'); $('mus').classList.toggle('on', on); A.music(on, +$('mi').value); };
+$('mi').oninput = () => A.music(undefined, +$('mi').value);
+['hall','living','kitchen','bath','work'].forEach(r => { btn('steps', r + ' walk', () => A.step(r, false)); btn('steps', r + ' run', () => A.step(r, true)); });
+$('vm').oninput = e => A.setVolume('master', e.target.value);
+$('vmu').oninput = e => A.setVolume('music', e.target.value);
+$('vs').oninput = e => A.setVolume('sfx', e.target.value);
+$('subs').onchange = e => { BB.CFG.subs = e.target.checked; };
+$('amb').onchange = e => A.ambience(e.target.checked);
+function room(){ return BB.LAYOUT.roomOf(BB.cam.x).id; }
+$('cam').oninput = e => { BB.cam.x = +e.target.value; $('camv').textContent = e.target.value; $('room').textContent = room(); };
+$('sx').oninput = e => { $('sxv').textContent = e.target.value; };
+$('room').textContent = room();
+BB.emit = (n, d) => { const l = $('log'); l.innerHTML += (n + ' ' + (d.name || '') + ' ' + (d.sub || '')) + '<br>'; l.scrollTop = 1e9; };
+// frame loop: audio.update + meter
+let an = null, buf = null;
+function frame(){
+  A.update(1/60);
+  if (A.engine && !an && A.engine.buses.out) { an = A.ctx.createAnalyser(); an.fftSize = 1024; A.engine.buses.out.connect(an); buf = new Float32Array(1024); }
+  if (an) { an.getFloatTimeDomainData(buf); let p = 0; for (let i = 0; i < buf.length; i++) p = Math.max(p, Math.abs(buf[i])); $('meter').firstElementChild.style.width = Math.min(100, p * 100) + '%'; }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+addEventListener('pointerdown', () => A.init(), { once: true });
+
+/* ---------------------------------------------------------------- QA API (used by tests/audio_measure.js) */
+window.AQ = (function () {
+  const SR = 44100;
+  const TARGET_DUR = { endGood: 3.5, endOk: 3.5, endBad: 4, toiletFlush: 3.2, win: 2.4, bad: 2, taskDone: 1.6, doorBell: 2.4, faucetHowl: 1.8, landlordVoice: 1.5, danVoice: 1.5, bamboulVoice: 1.5 };
+  function analyse(chs, from, to) {
+    const n = chs[0].length, a = Math.floor(from * SR), b = Math.min(n, Math.floor(to * SR));
+    let peak = 0, nan = false, dc = 0, cnt = 0, sumAll = 0;
+    const win = Math.floor(SR * .01), wr = [];
+    for (let i = a; i + win <= b; i += win) { let s = 0; for (const c of chs) for (let j = i; j < i + win; j++) { const x = c[j]; if (x !== x) nan = true; s += x * x; if (Math.abs(x) > peak) peak = Math.abs(x); dc += x; } wr.push(s / (win * chs.length)); cnt += win * chs.length; sumAll += s; }
+    const mx = Math.max.apply(null, wr.concat([1e-12])); let act = 0, na = 0; for (const w of wr) if (w > mx * .01) { act += w; na++; }
+    const db = x => 20 * Math.log10(Math.max(x, 1e-9));
+    const activeRms = Math.sqrt(act / Math.max(1, na)), allRms = Math.sqrt(sumAll / Math.max(1, cnt));
+    return { peak: peak, peakDb: db(peak), rmsDb: db(activeRms), allRmsDb: db(allRms), crest: db(peak) - db(activeRms), nan: nan, dc: dc / Math.max(1, cnt), activeFrac: na / Math.max(1, wr.length) };
+  }
+  async function render(kind, name, useTrim, extra) {
+    const dur = (extra && extra.dur) || (kind === 'sfx' ? (TARGET_DUR[name] || 1.6) : kind === 'music' ? 9 : 4.5);
+    const oc = new OfflineAudioContext(2, Math.floor(SR * dur), SR);
+    const e = A._Engine(oc, { offline: true, raw: true, trim: useTrim });
+    if (kind === 'sfx') e.play(name, Object.assign({ len: 1.2 }, extra || {}));
+    else if (kind === 'loop' || kind === 'amb') e.loop(name, true, {});
+    else if (kind === 'music') e.renderMusic((extra && extra.I) || .5, dur);
+    const buf = await oc.startRendering();
+    const chs = [buf.getChannelData(0), buf.getChannelData(1)];
+    const from = kind === 'sfx' ? 0 : kind === 'music' ? 1 : 1.5;
+    return Object.assign({ kind: kind, name: name, dur: dur }, analyse(chs, from, dur));
+  }
+  async function measureAll(useTrim) {
+    const out = [], l = A.list();
+    for (const n of l.sfx) out.push(await render('sfx', n, useTrim));
+    for (const n of l.loops) out.push(await render('loop', n, useTrim));
+    for (const n of l.ambience) out.push(await render('amb', n, useTrim));
+    for (const I of [0.1, 0.5, 1]) { const r = await render('music', 'music', useTrim, { I: I }); r.name = 'music@' + I; r.I = I; out.push(r); }
+    return out;
+  }
+  // real-time test of the live engine
+  async function live() {
+    const rep = { errors: [], notes: [] }; const A_ = A;
+    window.addEventListener('error', e => rep.errors.push(String(e.message)));
+    A_.init(); await new Promise(r => setTimeout(r, 300)); rep.state = A_.ctx && A_.ctx.state;
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+    const L = A_.list(); const base = A_.stats().live; rep.base = base;
+    const names = L.sfx; let played = 0, dropped = [];
+    for (const n of names) { const ok = A_.sfx(n, { len: .5, dur: .3 }); if (ok) played++; else dropped.push(n); await sleep(70); }
+    rep.sfxPlayed = played; rep.sfxDropped = dropped; rep.peakLiveSingles = A_.stats().peak;
+    await sleep(5500);
+    rep.afterSingles = A_.stats().live;
+    // stress: 40 repeated rounds
+    for (let r = 0; r < 25; r++) { for (const n of names) A_.sfx(n, { len: .3, x: 200 + r * 90 }); await sleep(20); }
+    rep.peakLiveStress = A_.stats().peak; await sleep(7000); rep.afterStress = A_.stats().live;
+    // loops
+    const lr = {};
+    for (const n of L.loops) { A_.loop(n, true, { x: 700 }); }
+    await sleep(500); rep.loopsRunning = A_.stats().loops.slice(); rep.liveWithLoops = A_.stats().live;
+    for (let i = 0; i < 20; i++) { A_.update(.05); await sleep(50); }
+    A_.stopAll(); await sleep(1500); rep.afterLoopsStop = A_.stats().live;
+    // repeated start/stop
+    for (let i = 0; i < 30; i++) { A_.loop('vacOn', true); await sleep(20); A_.loop('vacOn', false); } await sleep(1500); rep.afterLoopChurn = A_.stats().live;
+    // music
+    A_.music(true, .3); await sleep(1500); rep.musicLive1 = A_.stats().live; A_.music(true, 1); await sleep(2500); rep.musicLive2 = A_.stats().live; rep.musicOn = A_.stats().music;
+    A_.music(false); await sleep(2500); rep.afterMusic = A_.stats().live; rep.musicOnAfter = A_.stats().music;
+    // ambience crossfade over the whole flat
+    BB.audio.ambience(true); let maxAmb = 0;
+    for (let x = 0; x <= 3300; x += 60) { BB.cam.x = x; for (let k = 0; k < 4; k++) A_.update(.05); await sleep(25); maxAmb = Math.max(maxAmb, A_.stats().loops.length); }
+    rep.ambMaxLoops = maxAmb; rep.ambLoops = A_.stats().loops.slice();
+    A_.ambience(false); for (let k = 0; k < 10; k++) { A_.update(.05); await sleep(30); } await sleep(1200); rep.afterAmbOff = A_.stats().live; A_.ambience(true);
+    // worst-case stacking measured at the final output (after master limiter)
+    const eng = A_.engine; const an = A_.ctx.createAnalyser(); an.fftSize = 2048; eng.buses.out.connect(an); const buf = new Float32Array(2048); let pk = 0, ss = 0, sn = 0;
+    A_.setVolume('master', 1); A_.setVolume('sfx', 1); A_.setVolume('music', 1);
+    A_.music(true, 1); BB.cam.x = 2200; for (const n of L.loops) A_.loop(n, true, { x: 2200 });
+    const t0 = performance.now();
+    while (performance.now() - t0 < 5000) { for (const n of ['win', 'bagFull', 'doorKnock', 'toiletFlush', 'landlordVoice', 'urgent', 'printerError']) A_.sfx(n, { x: 2200, len: 1 }); for (let k = 0; k < 6; k++) { an.getFloatTimeDomainData(buf); for (let i = 0; i < buf.length; i++) { const a = Math.abs(buf[i]); if (a > pk) pk = a; ss += a * a; sn++; } await sleep(40); } }
+    rep.stackPeak = pk; rep.stackRmsDb = 20 * Math.log10(Math.sqrt(ss / sn) + 1e-9); rep.stackPeakLive = A_.stats().peak;
+    A_.stopAll(); A_.music(false); await sleep(3000); rep.afterAll = A_.stats().live; rep.finalState = A_.ctx.state;
+    return rep;
+  }
+  return { measureAll: measureAll, render: render, live: live };
+})();
+</script>
+</body>
+</html>
