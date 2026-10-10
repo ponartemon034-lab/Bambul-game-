@@ -1,7 +1,7 @@
 // Full-game QA runner (Playwright). Usage: node tools/qa_run.js [outDir]
 // Boots index.html, walks the whole apartment, captures screenshots, checks console errors, scale,
 // parallax, UI buttons, hotspots and the main task loop. Prints a JSON-ish report.
-const { chromium } = require('/opt/node22/lib/node_modules/playwright');
+const { chromium } = require('./_pw');
 const http = require('http'), fs = require('fs'), path = require('path');
 const root = path.resolve(__dirname, '..');
 const out = path.resolve(process.argv[2] || path.join(root, 'docs/screenshots'));

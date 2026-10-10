@@ -1,5 +1,5 @@
 // Usage: node tools/shot.js <url-path> <out.png> [--w 1280 --h 720] [--x 900] [--wait 800] [--eval "js"] [--keys "KeyD:600"]
-const { chromium } = require('/opt/node22/lib/node_modules/playwright');
+const { chromium } = require('./_pw');
 const http = require('http'), fs = require('fs'), path = require('path');
 const root = path.resolve(__dirname, '..');
 const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.json': 'application/json', '.webp': 'image/webp', '.svg': 'image/svg+xml' };

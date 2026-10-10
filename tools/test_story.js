@@ -1,6 +1,6 @@
 // Headless story-flow test.  Usage: node tools/test_story.js
 // Boots index.html, drives BB.story (intro, calls, thresholds, endings, save/load) and prints PASS/FAIL per check.
-const { chromium } = require('/opt/node22/lib/node_modules/playwright');
+const { chromium } = require('./_pw');
 const http = require('http'), fs = require('fs'), path = require('path');
 const root = path.resolve(__dirname, '..');
 const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.json': 'application/json', '.webp': 'image/webp', '.svg': 'image/svg+xml' };

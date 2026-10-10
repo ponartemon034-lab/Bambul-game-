@@ -1,5 +1,5 @@
 // Usage: node tools/test_stations.js   - plays dishes/mirror/faucet/toilet/printer/vacJam end-to-end with REAL pointer input.
-const { chromium } = require('/opt/node22/lib/node_modules/playwright');
+const { chromium } = require('./_pw');
 const http = require('http'), fs = require('fs'), path = require('path'), os = require('os');
 const root = path.resolve(__dirname, '..'), OUT = process.env.MINI_OUT || path.join(os.tmpdir(), 'st_shots'); fs.mkdirSync(OUT, { recursive: true });
 const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.json': 'application/json' };

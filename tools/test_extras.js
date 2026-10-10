@@ -1,5 +1,5 @@
 // Usage: node tools/test_extras.js - gamepad, game-feel (jump), medals, daily run, new settings/menus
-const { chromium } = require('/opt/node22/lib/node_modules/playwright');
+const { chromium } = require('./_pw');
 const http = require('http'), fs = require('fs'), path = require('path');
 const root = path.resolve(__dirname, '..');
 const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.json': 'application/json', '.mp3': 'audio/mpeg', '.jpg': 'image/jpeg' };
