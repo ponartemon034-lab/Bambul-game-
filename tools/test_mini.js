@@ -41,7 +41,7 @@ async function scrubUntil(minProg, areaPts, maxMs = 25000) {
     const prog = await ev(() => { const pr = document.querySelector('.mn-prog i'); return pr ? parseFloat(pr.style.width) : -1; });
     if (prog >= minProg || (minProg >= 90 && p && p !== 'scrub')) return Math.max(prog, 100);
     const pts = areaPts[k++ % areaPts.length]; const pp = []; for (let j = 0; j < 8; j++) pp.push([pts[0] + (j % 2 ? 1 : -1) * pts[2], pts[1] + (j % 3 - 1) * pts[3]]);
-    await drag(pp, 3);
+    await drag(pp, 22);
   }
   return -2;
 }
