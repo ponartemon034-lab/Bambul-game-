@@ -311,7 +311,17 @@
       const topic = c.intro ? null : pickTopic(S, n, reason);
       const ctx = ctxBase({ n, id: c.id, reason, topic, intro: !!c.intro, src, minutes: Math.max(1, Math.round(S.time / 60)) });
       const fbLines = (LAND_FB[n] || LAND_FB[1 + (n % 5)])(ctx.minutes);
-      let lines = script('landlord:' + n, ctx, fbLines).slice();
+      let lines = script('landlord:' + (c.intro ? 1 : n + 1), ctx, fbLines).slice();
+      // choices written inside a script carry their consequence in `ret` ({timeDelta, tag}); nothing consumed it before, so apply it here
+      for (const l of lines) if (l && l.choices) l.choices = l.choices.map(chc => {
+        const run0 = chc.run, ret = chc.ret; if (!ret || chc._wrapped) return chc;
+        return Object.assign({}, chc, { _wrapped: 1, run: function () {
+          const r = run0 && run0.apply(this, arguments);
+          if (ret.tag === 'lie-caught') S._st.lies++;
+          if (ret.timeDelta) addTime(ret.timeDelta, ret.tag === 'lie-caught' ? 'враньё не прошло' : ret.tag === 'honest' ? 'честность' : ret.tag === 'joke' ? 'шутка не зашла' : 'разговор с хозяином');
+          return r;
+        } });
+      });
       let pick = null, hasChoice = lines.some(l => l.choices);
       if (!c.intro && !hasChoice) {
         lines.push({ who: 'landlord', text: ASK[topic] || ASK.all, choices: [

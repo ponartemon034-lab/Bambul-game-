@@ -5,7 +5,7 @@
   "description": "БАМБУЛЬ: ХОЗЯИН ЕДЕТ — browser game, no build step",
   "scripts": {
     "dev": "python3 -m http.server 8000",
-    "test": "node tests/dlg_selftest.js && node tools/test_dread.js && node tools/test_story.js && node tools/test_voice.js",
+    "test": "node tests/dlg_selftest.js && node tools/test_lines.js && node tools/test_dread.js && node tools/test_rig.js && node tools/test_story.js && node tools/test_voice.js",
     "test:all": "npm test && node tools/test_tasks.js && node tools/test_stations.js && node tools/test_ui.js",
     "voice:new": "node tools/collect_new_lines.js /tmp/lines_new.json && python3 tools/gen_voice_silero.py /tmp/lines_new.json"
   },

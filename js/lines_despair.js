@@ -74,6 +74,7 @@
     ['Дайте воды, дайте водки, дайте хоть кого-нибудь убить!', 'angry'],
     ['Либо я убираю, либо оно меня. Пока что оно ведёт.', 'panic']
   ];
+  dlg.DESPAIR = { S2, S3, S4, S5 };
   // dread level n is "active" for n and the level right below it, so the mood blends instead of jumping
   addRows('move', S2, 2.5, () => lvl() === 2 || lvl() === 3);
   addRows('move', S3, 3, () => lvl() === 3 || lvl() === 4);

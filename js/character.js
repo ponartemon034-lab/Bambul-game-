@@ -358,7 +358,14 @@
       if (held) drawHeld(g, held, 18, -86, p, t);
       g.restore(); return;
     }
-    if (cyc || st === 'jump' || st === 'fall' || st === 'stumble') {
+    if (BB.rig && BB.rig.ready && inst.rigI && inst.rigI.out) {   // physical skeleton
+      const shake = st === 'panic' ? S_(t * 40) * 1.2 : 0; g.translate(shake, 0);
+      const hp = inst.rigI.draw(g, held, drawHeld, p, t) || [22, -86];
+      if (held === 'mop' || held === 'vac') drawTool(g, held, p, hp[0], hp[1]);
+      else if (held && held !== 'bag' && held !== 'clothes') drawHeld(g, held, hp[0], hp[1], p, t);
+      g.restore(); return;
+    }
+    if ((cyc || st === 'jump' || st === 'fall' || st === 'stumble')) {
       let idx = 0, sc = 1.2;
       if (cyc) idx = Math.floor((((inst.phase / (2 * Math.PI)) % 1) + 1) % 1 * 5) % 5; else { idx = st === 'jump' ? 4 : 3; sc = 1.15; }
       const im = I['run_' + idx], bob = cyc ? Math.abs(S_(inst.phase)) * 3 : 0;
@@ -390,6 +397,10 @@
       { const at = armTargets(inst.state, inst.t, inst.actT, inst.held); inst.arm = inst.arm || Object.assign({}, at); const ka = 1 - Math.exp(-dt * 16); for (const q in at) inst.arm[q] = lerp(inst.arm[q], at[q], ka); }
       const tg = poseFor(inst.state, inst.t, inst.phase, inst.actT, ctl);
       const a = 1 - Math.exp(-dt * (cyc ? 40 : 15)); for (const k in tg) inst.pose[k] = inst.pose[k] === undefined ? tg[k] : lerp(inst.pose[k], tg[k], k === 'eye' ? Math.min(1, a * 3) : a);
+      if (kind === 'bamboul' && BB.rig && BB.rig.ready) {          // physical skeleton (js/rig.js): drives every state except the sofa sprawl
+        inst.rigI = inst.rigI || BB.rig.create();
+        inst.rigI.update(dt, { phase: inst.phase, t: inst.t, vy: ctl.vy }, inst.state, inst.held, inst.pose, inst.arm);
+      }
     };
     inst.draw = function (g, t) {
       if (kind === 'bamboul' && TOON.ready && (BB.CFG && BB.CFG.realHero === false)) return drawToon(inst, g);
