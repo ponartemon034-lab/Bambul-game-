@@ -14,6 +14,8 @@
   <div id="ui"></div>
   <div id="loading"><div class="loadbox"><h1>БАМБУЛЬ</h1><p id="loadTxt">Сметаем пыль с декораций…</p><div class="loadtrack"><i id="loadBar"></i></div></div></div>
 </div>
+<!-- load diagnostics: remembers the first script errors so a missing module can be reported on screen -->
+<script>window.__errs=[];addEventListener("error",function(e){var t=e.target;__errs.push(t&&t.src?"не загрузился "+t.src.split("/").slice(-2).join("/"):(e.filename||"").split("/").pop()+":"+e.lineno+" "+e.message)},true);</script>
 <!-- engine -->
 <script src="js/engine.js"></script>
 <script src="js/art.js"></script>

@@ -225,6 +225,13 @@
   BB.fit = () => { const r = $('#app').getBoundingClientRect(); if (r.width < 10) return; BB.resize(cv, r.width, r.height); BB.snapCamera && BB.snapCamera(); };
 
   /* -------------------------------------------------------------- boot */
+  function reloadScript(src) {
+    return new Promise(res => { const s = document.createElement('script'); s.src = src + '?r=' + Date.now(); s.onload = s.onerror = () => res(); document.head.appendChild(s); setTimeout(res, 6000); });
+  }
+  function showBootProblem(msg) {
+    try { const d = document.createElement('div'); d.style.cssText = 'position:fixed;left:8px;right:8px;bottom:8px;z-index:9999;background:#400d;color:#fff;font:12px/1.35 system-ui;padding:8px 10px;border-radius:8px;pointer-events:none'; d.textContent = msg; document.body.appendChild(d); } catch (e) { }
+    console.error('[boot]', msg);
+  }
   BB.boot = async function () {
     cv = $('#cv'); g = cv.getContext('2d');
     const q = qs.get('q') || (/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) ? 'med' : 'high'); BB.setQuality(q);
@@ -233,7 +240,11 @@
     BB.fit(); if (BB.gl) { const on = !BB.CFG || BB.CFG.enhance !== false; if (!/low/.test(q) || qs.get('enhance')) BB.gl.enable(cv, on && qs.get('enhance') !== '0'); BB.fit(); } addEventListener('resize', BB.fit); addEventListener('orientationchange', () => setTimeout(BB.fit, 200));
     const bar = $('#loadBar'), txt = $('#loadTxt');
     await BB.buildWorld(p => { if (bar) bar.style.width = (p * 100 | 0) + '%'; });
-    hero = (BB.char && BB.char.create) ? BB.char.create('bamboul') : placeholderHero();
+    // a flaky local server / phone browser can drop a script request: re-request missing modules (up to 3 times) before giving up
+    const NEED = [['char', 'js/character.js'], ['audio', 'js/audio.js'], ['voice', 'js/voice.js'], ['dlg', 'js/dialogue.js'], ['tasks', 'js/tasks.js'], ['mini', 'js/minigames.js'], ['story', 'js/story.js']];
+    for (let k = 0; k < 3; k++) { const miss = NEED.filter(n => !BB[n[0]]); if (!miss.length) break; for (const n of miss) await reloadScript(n[1]); }
+    try { hero = (BB.char && BB.char.create) ? BB.char.create('bamboul') : placeholderHero(); } catch (e) { console.error('[hero]', e); (window.__errs = window.__errs || []).push('hero: ' + e.message); hero = placeholderHero(); }
+    if (hero.draw && !(BB.char && BB.char.create)) showBootProblem('Модель героя не загрузилась (js/character.js). ' + ((window.__errs || []).slice(0, 3).join(' | ') || 'причина неизвестна'));
     BB.hero = hero; BB.actors.length = 0; BB.actors.push(actor);
     if (BB.char && BB.char.createNpcs) BB.char.createNpcs();
     const ld = $('#loading'); if (ld) ld.hidden = true;
