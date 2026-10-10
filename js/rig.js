@@ -222,14 +222,18 @@
     const a = Math.max(0, lo - 2), b = Math.min(n - 1, hi + 2), dx = CURVE.x[b] - CURVE.x[a], dy = CURVE.y[b] - CURVE.y[a], l = Math.hypot(dx, dy) || 1;
     return [x, y, dx / l, dy / l];
   }
+  const OS = 2.2;
   function drawLeg(g, name, h, kn, an) {
     const im = R.img[name], L = R.rig.leg; if (!im || !im.width) return;
+    const key = [h[0], h[1], kn[0], kn[1], an[0], an[1]].map(v => Math.round(v * 20)).join(',');       // same pose as last frame (standing still): reuse the offscreen result
+    const hit = OFFKEY[name] === key && OFFBOX[name];
+    if (hit && OFF[name]) { const b = OFFBOX[name]; g.drawImage(OFF[name], 0, 0, b.bw, b.bh, b.x0, b.y0, b.bw / OS, b.bh / OS); return; }
     const m = buildCurve(h, kn, an), k = 1 / R.PX;
     const rs = [0, m.rH - (m.rH > 0 ? 0 : 0), m.rK, m.rA, m.total], ts = [0, L.sH, L.sK, L.sA, L.L];
     // knots: texture arc (source px) -> curve arclength (cm)
     const ra = [0, m.rH, m.rK, m.rA, m.total];
     const map = s => { for (let i = 0; i < 4; i++) if (s <= ts[i + 1] || i === 3) { const t = (s - ts[i]) / Math.max(ts[i + 1] - ts[i], 1e-6); return ra[i] + (ra[i + 1] - ra[i]) * t; } return m.total; };
-    const step = 1.25, hw = G.halfW, OS = 3;
+    const step = 1.7, hw = G.halfW;
     // the ribbon is drawn into a small offscreen canvas at a fixed 3 px/cm and blitted once: the result does not depend on the screen
     // scale (dynamic resolution!) and the slice seams can never show up as translucent hairlines
     let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
@@ -238,21 +242,22 @@
     const bw = Math.ceil((x1 - x0) * OS), bh = Math.ceil((y1 - y0) * OS);
     const oc = OFF[name] || (OFF[name] = document.createElement('canvas'));
     if (oc.width < bw || oc.height < bh) { oc.width = Math.max(oc.width, bw); oc.height = Math.max(oc.height, bh); }
-    const og = oc.getContext('2d'); og.setTransform(1, 0, 0, 1, 0, 0); og.clearRect(0, 0, oc.width, oc.height);
+    const og = oc.getContext('2d'); og.setTransform(1, 0, 0, 1, 0, 0); og.clearRect(0, 0, bw, bh);
     og.setTransform(OS, 0, 0, OS, -x0 * OS, -y0 * OS);
     for (let s0 = 0; s0 < L.L - .5; s0 += step) {
       let s1 = Math.min(L.L, s0 + step), r0 = map(s0), r1 = map(s1);
       const a = curveAt(r0), b = curveAt(r1), dth = Math.abs(Math.atan2(a[2] * b[3] - a[3] * b[2], a[2] * b[2] + a[3] * b[3]));
       const per = (s1 - s0) / Math.max(r1 - r0, 1e-4);                       // texture px per cm along this slice
-      s1 = Math.min(L.L, s1 + .8 + hw * dth * per);                          // overlap: also covers the wedge that opens on the outer side of a bend
+      s1 = Math.min(L.L, s1 + 1.0 + hw * dth * per);                          // overlap: also covers the wedge that opens on the outer side of a bend
       r1 = map(s1);
       const rc = (r0 + r1) / 2, len = Math.max(.05, r1 - r0), p = curveAt(rc), nx = p[3], ny = -p[2];
       og.save(); og.transform(nx, ny, p[2], p[3], p[0], p[1]);
       og.drawImage(im, 0, s0 * L.res, L.w, Math.max(1, (s1 - s0) * L.res), -hw, -len / 2, 2 * hw, len); og.restore();
     }
+    OFFKEY[name] = key; OFFBOX[name] = { bw, bh, x0, y0 };
     g.drawImage(oc, 0, 0, bw, bh, x0, y0, bw / OS, bh / OS);
   }
-  const OFF = {};
+  const OFF = {}, OFFKEY = {}, OFFBOX = {};
 
   function drawRig(g, o, held, drawHeld, p, t) {
     // far arm and far leg behind the body
