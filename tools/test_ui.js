@@ -205,7 +205,7 @@ async function desktop(br, port, w, h, tag, full) {
   // door
   await S(pg, () => { __log.length = 0; BB.ui.showMenu('door', {}); }); await wait(pg, 400);
   ok('door confirm paused', await S(pg, () => BB.paused && BB.ui.menuKind() === 'door')); await shot(pg, tag + '_door');
-  await pg.click('#menu >> text=Открыть', { force: true }); await wait(pg, 200); ok('door yes -> story.ending(true), unpaused', await S(pg, () => __log.includes('ending:true') && !BB.paused), await S(pg, () => [__log.join(), BB.paused]));
+  await pg.click('#menu button.bad', { force: true }); await wait(pg, 200); ok('door yes -> story.ending(true), unpaused', await S(pg, () => __log.includes('ending:true') && !BB.paused), await S(pg, () => [__log.join(), BB.paused]));
   await S(pg, () => BB.ui.showMenu('door', {})); await wait(pg, 300); await pg.keyboard.press('Escape'); await wait(pg, 200); ok('door Esc = no', await S(pg, () => !BB.paused && !BB.ui.menuKind()));
   // result
   await S(pg, () => { BB.S.f.faucetFixed = 1; BB.S.mode = 'ending'; localStorage.removeItem('bamboul.best'); BB.ui.result({ title: 'Хозяин в ярости, но жив', text: 'Аркадий Семёнович задержался в дверях на 40 секунд.' }); });

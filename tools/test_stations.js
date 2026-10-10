@@ -21,7 +21,8 @@ const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css
     const t0 = Date.now(), st0 = await stage();
     const [x0, y0] = await pt(rect[0], rect[1]); await pg.mouse.move(x0, y0); await pg.mouse.down();
     while (Date.now() - t0 < maxMs) {
-      for (let j = 0; j <= 10; j++) { const [xa, ya] = await pt(rect[0], rect[1] + j / 10 * rect[3]); const [xb, yb] = await pt(rect[0] + rect[2], rect[1] + j / 10 * rect[3]); await pg.mouse.move(xa, ya, { steps: 8 }); await pg.mouse.move(xb, yb, { steps: 8 }); }
+      for (let j = 0; j <= 10; j++) { const [xa, ya] = await pt(rect[0], rect[1] + j / 10 * rect[3]); const [xb, yb] = await pt(rect[0] + rect[2], rect[1] + j / 10 * rect[3]); await pg.mouse.move(xa, ya, { steps: 6 }); await pg.mouse.move(xb, yb, { steps: 45 }); }
+      if (process.env.DBG) console.log('prog', await ev(() => { const e = document.querySelector('.mn-prog i'); return e ? e.style.width : null; }));
       if (!(await ev(() => !!BB.mini._R)) || (await stage()) !== st0 || (await ev(() => BB.mini._R.won))) break;
     }
     await pg.mouse.up();
@@ -41,9 +42,18 @@ const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css
     faucet: async () => { await clickTarget('hose'); await clickTarget('nut'); ok(await waitStage('tighten'), 'faucet -> tighten'); await holdUntilStageChange('tighten'); ok(await waitStage('test'), 'faucet -> test'); await actionClick(); await winBtn(); },
     toilet: async () => { await scrubAll([220, 110, 320, 180]); ok(await waitStage('button'), 'toilet -> button'); await clickTarget('cap'); await clickTarget('spring'); ok(await waitStage('flush'), 'toilet -> flush'); await actionClick(); await winBtn(); },
     printer: async () => { await actionClick(); ok(await waitStage('pull'), 'printer -> pull'); for (const i of [0, 1, 2]) await clickTarget('f' + i); ok(await waitStage('feed'), 'printer -> feed'); await holdUntilStageChange('feed'); await winBtn(); },
+    fridge: async () => {
+      await actionClick(); ok(await waitStage('sort', 8000), 'fridge -> sort');
+      for (let k = 0; k < 14; k++) {
+        const bad = await ev(() => { const R = BB.mini._R; if (!R || R.stageId !== 'sort') return null; const b = R.targets().find(x => x.it && x.it.bad); return b ? b.id : null; });
+        if (!bad) break; await clickTarget(bad);
+        if (await ev(() => BB.mini._R && BB.mini._R.acts && BB.mini._R.acts.length && BB.mini._R.stageId === 'sort')) { /* bag full: carry out and reopen */ await actionClick(); await wait(600); if (!(await ev(() => !!BB.mini._R))) await ev(() => BB.mini.start('fridge', BB.S, r => { window.__res = r; })); }
+      }
+      ok(await waitStage('scrub', 8000), 'fridge -> scrub'); await scrubAll([60, 40, 600, 340], 220000); ok(await waitStage('close', 8000), 'fridge -> close'); await actionClick(); await wait(1500); await winBtn();
+    },
     vacJam: async () => { await clickTarget('cable'); await clickTarget('sock'); await winBtn(); }
   };
-  for (const id of Object.keys(plan)) {
+  for (const id of Object.keys(plan)) { if (process.env.ONLY && process.env.ONLY !== id) continue;
     await begin(id); ok(await ev(() => !!BB.mini._R), id + ' opens'); await shot(id + '_1');
     try { await plan[id](); } catch (e) { ok(false, id + ' exception ' + e.message); }
     await wait(500); const res = await ev(() => window.__res); await shot(id + '_end');

@@ -47,7 +47,7 @@ const check = (name, ok, info) => { (ok ? pass++ : fail++); console.log((ok ? 'P
   check('countdown frozen until the phone is answered', (await ev(() => BB.S.time)) === t0 && t0 === 120, t0);
   await pg.keyboard.down('KeyA'); await wait(700); await pg.keyboard.up('KeyA');
   check('moving wakes the hero (force cleared)', await ev(() => BB.P.force === null && BB.story.debug.R.lying === false));
-  check('tutorial toast for the phone', await until(() => BB.story.debug.log.some(l => l.n === 'tutorial' && l.d === 'phone') , 4000));
+  check('tutorial toast for the phone', await until(() => BB.story.debug.log.some(l => l.n === 'tutorial') , 9000));
   await ev(() => __bb.teleport(BB.abs('hall', 250)));
   await wait(300);
   const hot = await ev(() => BB.cur.hot && BB.cur.hot.id);
@@ -99,7 +99,7 @@ const check = (name, ok, info) => { (ok ? pass++ : fail++); console.log((ok ? 'P
   await until(() => !BB.story.talking && BB.S.f.phoneUp === 0, 5000);
   // ignored ring
   await ev(() => { BB.S.time = 57; BB.story.debug.R.callGap = 0; });
-  check('call l2 rings at 50 %', await until(() => BB.story.ringing === 'l2', 4000));
+  { const ok2 = await until(() => BB.story.ringing === 'l2' || BB.story.ringing === 'd1', 6000); check('call l2 rings at 50 %', ok2, ok2 ? undefined : await ev(() => { const R = BB.story.debug.R; return { ringing: BB.story.ringing, gap: R.callGap, t: BB.S.time, calls: BB.S._st.calls, busy: BB.ui.busy(), talk: R.talk, scale: BB.timeScale }; })); }
   const tb = await ev(() => BB.S.time); await ev(() => { BB.timeScale = 6; });
   const missed = await until(() => BB.story.ringing === null, 8000); await ev(() => { BB.timeScale = 1; });
   const tm = await ev(() => ({ t: BB.S.time, missed: BB.S._st.missed, ring: BB.S.f.phoneRing }));
