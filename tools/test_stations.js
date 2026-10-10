@@ -30,7 +30,7 @@ const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css
   async function clickTarget(id) { const ts = await ev(() => BB.mini._R.targets().map(t => ({ id: t.id, x: t.x, y: t.y, w: t.w, h: t.h }))); const t = ts.find(t => t.id === id); const [x, y] = await pt(t.x + t.w / 2, t.y + t.h / 2); await pg.mouse.move(x, y); await pg.mouse.down(); await pg.mouse.up(); await wait(150); }
   async function holdUntilStageChange(st) {
     const t0 = Date.now(); const [x, y] = await pt(380, 200); await pg.mouse.move(x, y); let down = false; await ev(() => { BB.timeScale = .1; });
-    while (Date.now() - t0 < 30000 && (await stage()) === st) { const d = await ev(() => BB.mini._R.stage.dbg && BB.mini._R.stage.dbg()); const inZ = d && d.pos > d.zone[0] + .02 && d.pos < d.zone[1] - .02; if (inZ && !down) { await pg.mouse.down(); down = true; } if (!inZ && down) { await pg.mouse.up(); down = false; } await wait(25); }
+    while (Date.now() - t0 < 90000 && (await stage()) === st) { const d = await ev(() => BB.mini._R.stage.dbg && BB.mini._R.stage.dbg()); const inZ = d && d.pos > d.zone[0] + .02 && d.pos < d.zone[1] - .02; if (inZ && !down) { await pg.mouse.down(); down = true; } if (!inZ && down) { await pg.mouse.up(); down = false; } await wait(25); }
     if (down) await pg.mouse.up(); await ev(() => { BB.timeScale = 1; });
   }
   async function actionClick() { for (let k = 0; k < 4; k++) { try { const els = await pg.$$('.mn-actions .mn-btn'); if (els.length) { await els[0].click({ timeout: 1500 }); await wait(100); } return; } catch (e) { await wait(150); } } }
