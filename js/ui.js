@@ -13,7 +13,7 @@
   const safe = (f, d) => { try { return f(); } catch (e) { console.error('[ui]', e); return d; } };
 
   /* ------------------------------------------------------------------ CFG */
-  const CFG_DEF = { vol: .7, music: false, sfx: true, musicVol: .8, sfxVol: 1, censor: false, subs: true, touch: false, quality: 'auto', realHero: true, enhance: true, voice: true, voiceVol: 1, debug: false, muted: false };
+  const CFG_DEF = { vol: .7, music: false, sfx: true, musicVol: .8, sfxVol: 1, censor: false, subs: true, touch: false, quality: 'auto', realHero: true, enhance: true, voice: true, voiceVol: 1, debug: false, muted: false, haptics: true };
   let stored = {}; try { stored = JSON.parse(localStorage.getItem('bamboul.cfg') || '{}') || {}; } catch (e) { }
   const CFG = BB.CFG = Object.assign(BB.CFG || {}, CFG_DEF, stored);
   BB.saveCFG = () => { try { localStorage.setItem('bamboul.cfg', JSON.stringify(CFG)); } catch (e) { } };
@@ -24,7 +24,7 @@
   };
 
   /* censor helper (same stems as legacy) */
-  const SWEAR = /(бля[а-яё]*|пизд[а-яё]*|ху[йеёяю][а-яё]*|[а-яё]*(?:заеб|наеб|проеб|уеб|ебан|ебуч|ёб)[а-яё]*|сук[аи]|говн[а-яё]*|дерьм[а-яё]*|муда[а-яё]*|жоп[а-яё]*|сран[а-яё]*|хер[а-яё]*|хрен[а-яё]*)/gi;
+  const SWEAR = /(бля[а-яё]*|пизд[а-яё]*|ху[йеёяю][а-яё]*|[а-яё]*(?:заеб|наеб|проеб|уеб|ебан|ебуч|ёб)[а-яё]*|сук[аи]|говн[а-яё]*|дерьм[а-яё]*|муд[аио][а-яё]*|ху[иы][а-яё]*|жоп[а-яё]*|сран[а-яё]*|хер[а-яё]*|хрен[а-яё]*|(?<![а-яё])еб[аеиоуыэюя][а-яё]*|пид[ао]р[а-яё]*|[гк]андон[а-яё]*|ублюд[а-яё]*|сволоч[а-яё]*|мраз[а-яё]*|дроч[а-яё]*|залуп[а-яё]*)/gi;
   if (!BB.cz) BB.cz = t => (CFG.censor && t != null) ? String(t).replace(SWEAR, m => m[0] + '*'.repeat(Math.max(1, m.length - 1))) : t;
   const cz = t => BB.cz(t);
 
@@ -437,7 +437,7 @@
   }
 
   /* ================================================================ MENUS */
-  const SUB = { settings: 1, help: 1, new: 1 };
+  const SUB = { settings: 1, help: 1, new: 1, medals: 1 };
   function btn(text, cls, fn, extra) {
     const b = h('button', { class: 'btn ' + (cls || ''), type: 'button', onclick: fn }, [text].concat(extra || []));
     return b;
@@ -456,7 +456,7 @@
     const m = els.menu; m.hidden = false; m.className = 'menu m-' + kind + (kind === 'title' ? ' on-scene' : '');
     m.innerHTML = '';
     const sheet = h('div', { class: 'sheet' }); m.append(sheet);
-    const B = { title, new: newMenu, help, settings, pause: pauseMenu, door, result: resultMenu }[kind];
+    const B = { title, new: newMenu, help, settings, medals: medalsMenu, pause: pauseMenu, door, result: resultMenu }[kind];
     if (B) B(sheet, arg);
     updateBusy();
     requestAnimationFrame(() => { m.classList.add('on'); const d = $('[data-default]', m) || $('.btn', m); d && d.focus({ preventScroll: true }); });
@@ -494,7 +494,8 @@
         btn('Новая игра', 'primary', () => showMenu('new')),
         hasSave ? btn('Продолжить', '', continueGame) : btn('Продолжить', 'dis', () => toast('Сохранения пока нет. Начни новую игру.', 'warn'), []),
         btn('Как играть', '', () => showMenu('help')),
-        btn('Настройки', '', () => showMenu('settings'))
+        btn('Настройки', '', () => showMenu('settings')),
+        btn('Медали', '', () => showMenu('medals'))
       ]),
       best ? h('p', { class: 'fine best', text: 'Лучший результат: ' + best.score + '% · оценка ' + best.grade }) : null,
       h('p', { class: 'fine', text: 'A/D — идти · Пробел — прыжок · E — действие · F — убирать · Esc — пауза' })
@@ -525,7 +526,15 @@
       const b = h('button', { class: 'card' + (o[0] === 480 ? ' pick' : ''), type: 'button', 'data-total': o[0], onclick: () => newGame(o[0]) }, [h('small', { text: o[1] }), h('b', { text: o[2] }), h('span', { text: o[3] })]);
       if (o[0] === 480) b.setAttribute('data-default', ''); row.append(b);
     });
-    sheet.append(row, h('div', { class: 'rowb' }, [btn('Назад', 'alt', menuBack)]));
+    sheet.append(row, h('div', { class: 'rowb' }, [btn('Ежедневный забег (8 минут, один сид на всех)', '', startDaily), btn('Назад', 'alt', menuBack)]));
+  }
+  function medalsMenu(sheet) {
+    const paper = h('div', { class: 'paper medalsheet' }); paper.innerHTML = '<h2>Медали</h2>' + (BB.ach ? BB.ach.allHtml() : '<p class="fine">Пока нет</p>');
+    sheet.append(paper, h('div', { class: 'rowb' }, [btn('Назад', 'primary', menuBack)])); $('.primary', sheet).setAttribute('data-default', '');
+  }
+  function startDaily() {
+    if (BB.ach) { BB.nextSeed = BB.ach.dailySeed(); BB.nextDaily = BB.ach.dailyId(); }
+    newGame(480);
   }
   function newGame(total) {
     total = total || 480; st.total = total; sfx('uiClick');
@@ -552,6 +561,9 @@
       K('<kbd>E</kbd>', 'действие: взять, открыть, починить, ответить') + K('<kbd>F</kbd>', 'держать — убирать пылесосом и шваброй') +
       K('<kbd>1</kbd>–<kbd>4</kbd>', 'руки · пылесос · швабра · инструменты') + K('<kbd>Tab</kbd>', 'список дел') +
       K('<kbd>T</kbd>', 'позвонить Дэну (подсказка)') + K('<kbd>Esc</kbd> / <kbd>P</kbd>', 'пауза') + K('<kbd>M</kbd>', 'звук вкл/выкл') + K('<kbd>F3</kbd>', 'отладка') + '</dl></section>' +
+      '<section class="paper"><h3>Геймпад</h3><dl class="keys">' +
+      K('Стик / крестовина', 'идти (до упора или <kbd>LT</kbd> — бежать)') + K('<kbd>A</kbd>', 'прыжок') + K('<kbd>X</kbd>', 'действие') + K('<kbd>B</kbd> / <kbd>RT</kbd>', 'держать — убирать') +
+      K('<kbd>LB</kbd> <kbd>RB</kbd>', 'инструмент') + K('<kbd>Y</kbd>', 'позвонить Дэну') + K('<kbd>Back</kbd> / <kbd>Start</kbd>', 'список дел / пауза') + '</dl></section>' +
       '<section class="paper tilt"><h3>Телефон / планшет</h3><dl class="keys">' +
       K('Стик слева', 'идти; тянуть до упора — бежать') + K('Кнопка ↑', 'прыжок') + K('Большая <b>E</b>', 'действие, на ней написано какое') +
       K('Кнопка «держи»', 'убирать: удерживай') + K('Верхние кнопки', 'список дел, звонок Дэну, пауза') + K('Нижняя полоска', 'выбор инструмента') + '</dl></section>' +
@@ -590,7 +602,8 @@
       row('Озвучка голосом', toggle('voice', v => { if (!v && BB.voice) BB.voice.stop(); }), 'Реплики Бамбуля озвучены записанным голосом'),
       row('Субтитры звуков', toggle('subs'), 'Подписи вроде «[звонит телефон]»'),
       row('Сенсорное управление', toggle('touch', v => setTouch(v)), 'Всегда показывать стик и кнопки'),
-      row('Показать отладку', toggle('debug', v => { if (BB.debug) BB.debug.on = v; }), 'То же, что F3')
+      row('Показать отладку', toggle('debug', v => { if (BB.debug) BB.debug.on = v; }), 'То же, что F3'),
+      row('Вибрация', toggle('haptics'), 'Телефон и геймпад: толчки при прыжках, победах и катастрофах')
     );
     const qrow = h('div', { class: 'set qual' }), qb = h('span', { class: 'seg', role: 'radiogroup', 'aria-label': 'Качество графики' });
     [['auto', 'Авто'], ['low', 'Низкое'], ['med', 'Среднее'], ['high', 'Высокое']].forEach(q => {
@@ -677,10 +690,11 @@
     paper.innerHTML = '<div class="act-h"><small>Акт осмотра квартиры</small><span class="act-no">№ ' + (1000 + (a.score * 7 + a.total) % 9000) + '</span></div>' +
       '<h2 class="act-t">' + esc(cz(a.title)) + '</h2>' + (a.text ? '<p class="act-s">' + esc(cz(a.text)) + '</p>' : '') +
       '<ul class="parts">' + (a.parts.length ? partsHTML(a.parts, true) : '<li><div class="pt"><b>Без замечаний (комиссия не нашла, что осматривать)</b></div></li>') + '</ul>' +
+      (BB.ach ? BB.ach.html() : '') +
       '<div class="act-sum"><div><small>Чистота</small><b>' + a.score + '%</b></div><div><small>Лучший</small><b>' + Math.max(a.score, a.prev ? a.prev.score : 0) + '%</b>' + (a.isBest ? '<i class="rec">рекорд!</i>' : '') + '</div></div>' +
       '<div class="stamp g-' + a.grade + '" aria-label="Оценка ' + a.grade + '">' + a.grade + '</div>';
     sheet.append(paper, h('div', { class: 'rowb' }, [
-      btn('Ещё раз', 'primary', () => { const t = a.total || 480; closeMenu(); if (a.opts.onAgain) safe(() => a.opts.onAgain()); else newGame(t); }),
+      btn('Ещё раз', 'primary', () => { const t = a.total || 480; if (BB.S && BB.S.daily) { BB.nextSeed = BB.S.seed; BB.nextDaily = BB.S.daily; } closeMenu(); if (a.opts.onAgain) safe(() => a.opts.onAgain()); else newGame(t); }),
       btn('В меню', 'alt', () => { closeMenu(); if (a.opts.onMenu) safe(() => a.opts.onMenu()); else toMenu(); })]));
     $('.primary', sheet).setAttribute('data-default', '');
   }
@@ -702,11 +716,11 @@
       const rr = Math.min(R * .9, Math.hypot(dx, dy)), a = Math.atan2(dy, dx);
       knob.style.transform = 'translate(' + Math.cos(a) * rr + 'px,' + Math.sin(a) * rr + 'px)';
       const ax = clamp(dx / (R * .72), -1, 1); BB.In.tAx = Math.abs(ax) < .16 ? 0 : ax; BB.In.usedTouch = true;
-      if (dy < -R * .8 && !tp.up) { tp.up = true; BB.In.jump = true; } else if (dy > -R * .5) tp.up = false;
+      if (dy < -R * .8 && !tp.up) { tp.up = true; BB.In.jump = true; BB.In.tJump = true; } else if (dy > -R * .5) { tp.up = false; BB.In.tJump = false; }
     };
     joy.addEventListener('pointerdown', e => { e.preventDefault(); if (busy()) return; tp.joy = e.pointerId; try { joy.setPointerCapture(e.pointerId); } catch (_) { } BB.audio && BB.audio.init && BB.audio.init(); joy.classList.add('down'); setAx(e); });
     joy.addEventListener('pointermove', e => { if (e.pointerId === tp.joy) setAx(e); });
-    const end = e => { if (e.pointerId !== tp.joy) return; tp.joy = null; tp.up = false; BB.In.tAx = 0; knob.style.transform = ''; joy.classList.remove('down'); };
+    const end = e => { if (e.pointerId !== tp.joy) return; tp.joy = null; tp.up = false; BB.In.tJump = false; BB.In.tAx = 0; knob.style.transform = ''; joy.classList.remove('down'); };
     ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(n => joy.addEventListener(n, end));
     const bindBtn = (id, down, up) => {
       const b = $('#' + id, els.touch);
@@ -715,7 +729,7 @@
       ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(n => b.addEventListener(n, rel));
       b.addEventListener('contextmenu', e => e.preventDefault());
     };
-    bindBtn('tJ', () => { BB.In.jump = true; });
+    bindBtn('tJ', () => { BB.In.jump = true; BB.In.tJump = true; }, () => { BB.In.tJump = false; });
     bindBtn('tF', () => { BB.In.tUse = true; BB.In.useEdge = true; }, () => { BB.In.tUse = false; });
     bindBtn('tE', () => { BB.In.act = true; });
   }
@@ -764,7 +778,7 @@
         pill.innerHTML = st.touch ? '<span class="cap">' + ic('tap') + '</span>' : '<span class="cap">E</span><span class="tx"></span>' + (useHint ? '<span class="hold"><kbd>F</kbd> убирать</span>' : '');
         const tx = $('.tx', pill); if (tx) tx.textContent = cz(cur.prompt); st.pillW = pill.offsetWidth; st.pillH = pill.offsetHeight;
       }
-      pillOn = true; px = BB.sx(cur.ax, 0) * k; py = BB.sy((cur.hot.h || 100) + 12, 0) * k;
+      pillOn = true; px = BB.sx(cur.ax, 0) * k; { let ph = (cur.hot.h || 100) + 12; if (Math.abs(cur.ax - P.x) < 70) ph = Math.max(ph, P.y + (L.playerH || 178) + 24); py = BB.sy(ph, 0) * k; }   // never cover the hero's face
     } else if (useHint) {
       const key = 'hold|' + st.touch; if (key !== st.promptKey) { st.promptKey = key; pill.classList.remove('mini'); pill.innerHTML = '<span class="hold only"><kbd>' + (st.touch ? 'держи' : 'F') + '</kbd> убирать</span>'; st.pillW = pill.offsetWidth; st.pillH = pill.offsetHeight; }
       pillOn = true; px = BB.sx(P.x, 0) * k; py = BB.sy(P.y + 60, 0) * k;

@@ -348,13 +348,14 @@
     const cyc = st === 'walk' || st === 'run' || st === 'carry';
     g.save(); const fc = Math.abs(inst.face) < .12 ? .12 * Math.sign(inst.face || 1) : inst.face; g.scale(fc, 1);
     const draw = (im, ox, oy, sc) => { const w = im.width * k * (sc || 1), h = im.height * k * (sc || 1); g.drawImage(im, -w / 2 + (ox || 0), -h + (oy || 0), w, h); };
-    if (st === 'sit') {                                   // sprawled on the sofa: torso thrown back, legs stretched out forward
-      const im = I.idle, w = im.width * k, h = im.height * k, hipY = h * .5, br = S_(t * 1.6) * .012, hip = 38;
-      g.translate(-4, (h - hipY) - hip);
-      const part = (y0, y1, ang, px, py) => { g.save(); g.translate(px, py); g.rotate(ang); g.translate(-px, -py); g.beginPath(); g.rect(-w, -h + y0, w * 2, y1 - y0); g.clip(); g.drawImage(im, -w / 2, -h, w, h); g.restore(); };
-      const hy = -h + hipY + 2;                          // hip height in sprite space
-      part(hipY - 2, h + 4, -1.2 + br, 0, hy);          // legs: swung forward (feet end up on the right)
-      part(-2, hipY + 2, -.78 + br * 2 + S_(t * .7) * .02, 0, hy);   // torso: reclined back
+    if (st === 'sit') {                                   // slouched on the sofa: thighs forward, shins down (feet on the floor), torso reclined
+      const im = I.idle, w = im.width * k, h = im.height * k, hipY = h * .5, kneeY = h * .72, br = S_(t * 1.6) * .012, seatHip = 54;
+      const hy = -h + hipY, ky = -h + kneeY, L1 = kneeY - hipY, a0 = -.42 + br * 2 + S_(t * .7) * .02, a1 = -1.46 + br, a2 = .08;
+      g.translate(-6, (h - hipY) - seatHip);
+      const clip = (y0, y1) => { g.beginPath(); g.rect(-w, -h + y0, w * 2, y1 - y0); g.clip(); };
+      g.save(); g.translate(-Math.sin(a1) * L1, hy + Math.cos(a1) * L1); g.rotate(a2); g.translate(0, -ky); clip(kneeY - 1, h + 6); g.drawImage(im, -w / 2, -h, w, h); g.restore();   // shins
+      g.save(); g.translate(0, hy); g.rotate(a1); g.translate(0, -hy); clip(hipY - 2, kneeY + 2); g.drawImage(im, -w / 2, -h, w, h); g.restore();                                       // thighs
+      g.save(); g.translate(0, hy); g.rotate(a0); g.translate(0, -hy); clip(-2, hipY + 2); g.drawImage(im, -w / 2, -h, w, h); g.restore();                                               // torso + head
       if (held) drawHeld(g, held, 18, -86, p, t);
       g.restore(); return;
     }

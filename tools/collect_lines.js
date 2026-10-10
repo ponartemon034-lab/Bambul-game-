@@ -23,6 +23,7 @@ srv.listen(0, async () => {
     for (const id of ids) for (const c of ctxs) {
       for (const seed of [1, 2]) { try { BB.dlg._seed(seed); const lines = BB.dlg.script(id, c); for (const l of lines || []) { add(l.who, l.text); for (const ch of (l.choices || [])) { add('bamboul', ch.text); try { const more = ch.run && ch.run(); for (const m of (more || [])) add(m.who, m.text); } catch (e) { } } } } catch (e) { } }
     }
+    for (const id in (BB.dlg._variants || {})) for (const v of BB.dlg._variants[id]) for (const l of v) add(l.who, l.text);   // authored call variants (picked at random at run time)
     BB.dlg._unseed(); window.__extra && window.__extra.forEach(t => add('bamboul', t)); return [...res.values()].filter(x => x.who !== 'narr');
   });
   fs.writeFileSync('/tmp/lines.json', JSON.stringify(out)); const by = {}; out.forEach(o => by[o.who] = (by[o.who] || 0) + 1); console.log(out.length, JSON.stringify(by), 'chars', out.reduce((a, o) => a + o.text.length, 0));

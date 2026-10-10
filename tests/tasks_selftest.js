@@ -53,7 +53,9 @@ window.__tasksSelfTest = async function () {
   ok(/Подобрать/.test(B.cur.prompt || ''), 'prompt shows pickup text');
   B.In.act = true; await sleep(250); await free();
   ok(S.carry.trash === 1 && S.items.filter(i => i.taken).length === 1, 'E picks up one piece with animation (carry=' + S.carry.trash + ')');
-  ok(P.held === 'bag', 'held=bag while carrying');
+  await until(() => P.held === 'bag', 2500);
+  ok(P.held === 'bag', 'held=bag while carrying (held=' + P.held + ' act=' + JSON.stringify(P.act && P.act.type) + ' busy=' + !!(B.ui && B.ui.busy && B.ui.busy()) + ' st=' + P.st + ')');
+  await until(() => S.slow < 1, 1500);
   ok(S.slow < 1, 'carrying slows hero (slow=' + S.slow.toFixed(2) + ')');
   // fill hand bag to cap, then block
   for (const it of tr.slice(1, 6)) { at(it.ax); await sleep(80); T.interact({ id: 'item:' + it.id }, S); await free(); }
@@ -82,7 +84,7 @@ window.__tasksSelfTest = async function () {
   T.interact(hs('bagStand'), S); await free();
   ok(S.carry.haul === S.bag.cap || S.carry.haul > 0, 'full bag hauled (haul=' + S.carry.haul + ')');
   ok(S.bag.n === 0 && S.f.bagFill === 0, 'stand reset after haul');
-  await sleep(150);
+  await until(() => S.slow <= 0.8, 2500);
   ok(S.slow <= 0.8, 'hauling slows hero (slow=' + S.slow.toFixed(2) + ')');
   ok(/мешок/i.test(T.prompt(hs('bin'), S)), 'bin prompt for hauled bag');
   const before = T.progress(S).score; at(B.abs('kitchen', 520)); await sleep(80); T.interact(hs('bin'), S); await free();
@@ -164,6 +166,7 @@ window.__tasksSelfTest = async function () {
   T.interact(hs('pc'), S); await free(); await sleep(60); ok(S.lazy === lz + 3, 'pc counts as procrastination');
   // washer
   const c1 = S.items.find(i => i.kind === 'cloth'); at(c1.ax); await sleep(80); T.interact({ id: 'item:' + c1.id }, S); await free();
+  await until(() => P.held === 'clothes', 2500);
   ok(S.carry.cloth === 1 && P.held === 'clothes', 'cloth picked, held=clothes (' + P.held + ')');
   at(B.abs('bath', 65)); await sleep(80); T.interact(hs('washer'), S); await free(); await sleep(60);
   ok(S.wash.n === 1 && S.carry.cloth === 0 && S.f.washerOn === 1, 'washer takes clothes and shakes');

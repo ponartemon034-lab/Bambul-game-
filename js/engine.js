@@ -366,7 +366,8 @@
     const list = [];
     for (const l of BB.world.lights) {
       if (l.on && !l.on(S)) continue;
-      const f = l.flicker ? 1 - l.flicker * (.5 + .5 * Math.sin(t * 37 + l.ax) * Math.sin(t * 5.3)) : 1;
+      let f = l.flicker ? 1 - l.flicker * (.5 + .5 * Math.sin(t * 37 + l.ax) * Math.sin(t * 5.3)) : 1;
+      if (S.f && S.f.lampFlicker) f *= 1 - .65 * Math.max(0, Math.sin(t * 23 + l.ax * .01) * Math.sin(t * 7.1));   // chaos: the whole flat blinks
       list.push({ ax: l.ax, y: l.y, z: l.z, r: l.r, i: (l.i || 1) * f, color: l.color, bloom: l.bloom == null ? .1 : l.bloom, room: l.room, cone: l.cone, puddle: l.puddle });
     }
     for (const fn of BB.hooks.lights) { const a = fn(S, t); if (a) for (const l of a) list.push(Object.assign({ z: 0, bloom: 0, color: '255,230,200' }, l)); }

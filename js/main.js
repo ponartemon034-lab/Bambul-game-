@@ -13,11 +13,12 @@
 
   /* ------------------------------------------------------------------ input */
   const In = BB.In = {
-    keys: {}, tAx: 0, tUse: false, jump: false, act: false, useEdge: false, usedTouch: false,
-    reset() { this.keys = {}; this.tAx = 0; this.tUse = false; this.jump = this.act = this.useEdge = false; },
-    get ax() { let a = this.tAx; if (this.keys.KeyA || this.keys.ArrowLeft) a -= 1; if (this.keys.KeyD || this.keys.ArrowRight) a += 1; return clamp(a, -1, 1); },
-    get run() { return !!(this.keys.ShiftLeft || this.keys.ShiftRight) || Math.abs(this.tAx) > .92; },
-    get use() { return !!this.keys.KeyF || this.tUse; }
+    keys: {}, tAx: 0, gpAx: 0, gpRun: false, gpUse: false, gpJump: false, tUse: false, tJump: false, jump: false, act: false, useEdge: false, usedTouch: false,
+    reset() { this.keys = {}; this.tAx = 0; this.gpAx = 0; this.gpRun = this.gpUse = this.gpJump = false; this.tUse = this.tJump = false; this.jump = this.act = this.useEdge = false; },
+    get ax() { let a = this.tAx + this.gpAx; if (this.keys.KeyA || this.keys.ArrowLeft) a -= 1; if (this.keys.KeyD || this.keys.ArrowRight) a += 1; return clamp(a, -1, 1); },
+    get run() { return !!(this.keys.ShiftLeft || this.keys.ShiftRight) || Math.abs(this.tAx) > .92 || this.gpRun || Math.abs(this.gpAx) > .92; },
+    get use() { return !!this.keys.KeyF || this.tUse || this.gpUse; },
+    get jumpHeld() { return !!(this.keys.Space || this.keys.ArrowUp || this.keys.KeyW) || this.tJump || this.gpJump; }
   };
 
   /* ------------------------------------------------------------ player state */
@@ -25,7 +26,7 @@
     x: 300, y: 0, vx: 0, vy: 0, dir: 1, face: 1, st: 'idle', act: null, locked: false, mood: null, moodT: 0, landT: 0, stopT: 0,
     walkTo: null, height: L.playerH, held: null, ph: 0, accel: 0, idleT: 10, force: null
   };
-  const SPEED = { walk: 170, run: 310 }, JUMP_V = 395, GRAV = 1350;
+  const SPEED = { walk: 170, run: 310 }, JUMP_V = 395, GRAV = 1350, JUMP_CUT = 300, COYOTE = .11, JUMP_BUF = .13;   // game feel: coyote time, jump buffer, short hop on early release
   let hero = null;      // character instance (js/character.js) or the placeholder
 
   const actor = {
@@ -73,7 +74,16 @@
     P.accel = target - P.vx;
     P.vx = Math.abs(target - P.vx) <= acc ? target : P.vx + Math.sign(target - P.vx) * acc;
     if (ax > .05) P.dir = 1; else if (ax < -.05) P.dir = -1;
-    if (ctl && In.jump && P.y <= groundAt(P.x, P.y) + .5) { P.vy = JUMP_V; BB.audio && BB.audio.sfx && BB.audio.sfx('jump'); }
+    // jump: buffered press + coyote time; releasing early cuts the jump (short hop)
+    const grounded = P.y <= groundAt(P.x, P.y) + .5;
+    if (grounded) P.coy = COYOTE; else P.coy = (P.coy || 0) - dt;
+    if (ctl && In.jump) P.jbuf = JUMP_BUF; else P.jbuf = (P.jbuf || 0) - dt;
+    if (ctl && P.jbuf > 0 && P.coy > 0 && P.vy <= 1) {
+      P.vy = JUMP_V; P.jbuf = 0; P.coy = 0; P.jumping = true; BB.audio && BB.audio.sfx && BB.audio.sfx('jump');
+      BB.fx && BB.fx.puff(P.x, P.y, 5, { vx: -P.vx * .2 });
+    }
+    if (P.jumping && P.vy > JUMP_CUT && !In.jumpHeld) P.vy = JUMP_CUT;
+    if (P.vy <= 0) P.jumping = false;
     // horizontal with solid blocking
     let nx = P.x + P.vx * dt;
     for (const s of solidsActive()) {
@@ -88,7 +98,7 @@
     if (P.y > gnd || P.vy > 0) {
       P.vy -= GRAV * dt; P.y += P.vy * dt;
       if (P.y > cap && P.vy > 0) { P.y = cap; P.vy = 0; }
-      if (P.y <= gnd) { P.y = gnd; if (P.vy < -220) { P.landT = .18; BB.audio && BB.audio.sfx && BB.audio.sfx('land'); } P.vy = 0; }
+      if (P.y <= gnd) { P.y = gnd; if (P.vy < -220) { P.landT = .18; BB.audio && BB.audio.sfx && BB.audio.sfx('land'); if (BB.fx) { BB.fx.puff(P.x, P.y, P.vy < -380 ? 9 : 5, { r: 6 }); if (P.vy < -420) { BB.fx.shake(.12); BB.haptic && BB.haptic(18, .3); } } } P.vy = 0; }
     } else P.y = gnd;
     if (!isFinite(P.x) || !isFinite(P.y)) { P.x = 300; P.y = 0; P.vx = P.vy = 0; }
     // animation state
@@ -107,7 +117,7 @@
     else st = 'idle';
     P.st = st;
     const cyc = st === 'walk' || st === 'run' || st === 'carry';
-    if (cyc) { const prev = P.ph; P.ph += Math.abs(P.vx) / (st === 'run' ? 62 : 52) * dt * Math.PI; if (Math.floor(prev / Math.PI) !== Math.floor(P.ph / Math.PI)) BB.audio && BB.audio.step && BB.audio.step(L.roomOf(P.x).id, st === 'run'); }
+    if (cyc) { const prev = P.ph; P.ph += Math.abs(P.vx) / (st === 'run' ? 62 : 52) * dt * Math.PI; if (Math.floor(prev / Math.PI) !== Math.floor(P.ph / Math.PI)) { BB.audio && BB.audio.step && BB.audio.step(L.roomOf(P.x).id, st === 'run'); if (st === 'run' && BB.fx) BB.fx.puff(P.x - P.dir * 14, 0, 2, { r: 3.5, a: .26, vx: -P.dir * 30 }); } }
     P.face = lerp(P.face, P.dir, 1 - Math.exp(-dt * 20));
     actor.x = P.x; actor.y = P.y;
     if (hero && hero.update) hero.update(dt, { state: st, phase: P.ph, speed: Math.abs(P.vx), dir: P.dir, face: P.face, held: P.held, t: tGlobal, actT: P.act ? P.act.t / P.act.dur : 0, air, vy: P.vy, ax });
@@ -187,7 +197,7 @@
     const S = BB.S;
     if (!BB.paused) {
       if (S && (S.mode === 'play' || S.mode === 'ending')) { for (const f of BB.hooks.update) f(dt, S, tGlobal); }
-      updatePlayer(dt);
+      { const n = Math.min(5, Math.max(1, Math.ceil(dt * 90))); for (let i = 0; i < n; i++) updatePlayer(dt / n); }   // sub-steps keep jumps and collisions stable on slow frames
       pickHotspot();
       if (S && S.mode === 'play' && !BB.paused && In.act && player.canControl()) interact();
       if (BB.cur.hot === null) { /* nothing */ }

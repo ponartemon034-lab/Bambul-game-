@@ -46,23 +46,37 @@
   function segCount(w) { return clamp(Math.ceil(w / 22), 3, 8); }
 
   /* ------------------------------------------------------------- newState */
-  BB.newState = function (total) {
-    total = total > 0 ? +total : 480;
-    const items = [], stains = [], dust = [];
+  /* Every run has a seed: it jitters where the mess lies and which junk it is, so no two runs look the same.
+     opts.seed fixes it (daily run / reproducible bug); opts.flat = the original hand-placed layout (old saves). */
+  BB.newState = function (total, opts) {
+    total = total > 0 ? +total : 480; opts = opts || {};
+    const seed = (opts.seed != null ? opts.seed : (BB.nextSeed != null ? BB.nextSeed : Math.floor(Math.random() * 1e9))) >>> 0; if (opts.seed == null) BB.nextSeed = null;
+    const daily = opts.seed == null ? (BB.nextDaily || 0) : 0; if (opts.seed == null) BB.nextDaily = 0;
+    const flat = !!opts.flat, rng = U.srand((Math.imul(seed, 2654435761) >>> 0) + 17);
+    const jit = (rid, x, amp) => {
+      if (flat) return x; const room = BB.roomById(rid), w = room.x1 - room.x0; let v = clamp(x + (rng() - .5) * amp, 56, w - 56);
+      if (rid === 'hall' && v > 335 && v < 435) v = v < 385 ? 335 : 435;
+      const hs = (BB.rooms[rid] && BB.rooms[rid].hotspots) || [];                       // keep junk off the big interaction points (phone, fridge, ...), so E always means the object
+      for (const h of hs) if (Math.abs(v - h.x) < 40) v = clamp(h.x + (v >= h.x ? 40 : -40), 56, w - 56);
+      return v;
+    };
+    const jz = z => flat ? z : clamp(z + (rng() - .5) * 20, -20, 52);
+    const shuffled = n => { const a = Array.from({ length: n }, (_, i) => i); if (!flat) for (let i = n - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+    const tv = shuffled(16), cv = shuffled(5), items = [], stains = [], dust = [];
     let ti = 0, ci = 0, si = 0, di = 0;
     for (const rid of ROOM_ORDER) {
       const P = PLAN[rid];
-      for (const [x, z] of P.trash) { items.push({ id: 't' + pad2(++ti), kind: 'trash', v: (ti * 7 + 2) % 16, room: rid, ax: BB.abs(rid, x), z, taken: 0 }); }
-      for (const [x, z] of P.cloth) { items.push({ id: 'c' + pad2(++ci), kind: 'cloth', v: (ci * 2 + 1) % 5, room: rid, ax: BB.abs(rid, x), z, taken: 0 }); }
+      for (const [x, z] of P.trash) { items.push({ id: 't' + pad2(++ti), kind: 'trash', v: flat ? (ti * 7 + 2) % 16 : tv[ti % 16], room: rid, ax: BB.abs(rid, jit(rid, x, 60)), z: jz(z), taken: 0 }); }
+      for (const [x, z] of P.cloth) { items.push({ id: 'c' + pad2(++ci), kind: 'cloth', v: flat ? (ci * 2 + 1) % 5 : cv[ci % 5], room: rid, ax: BB.abs(rid, jit(rid, x, 60)), z: jz(z), taken: 0 }); }
       for (const a of P.stains) {
         const w = a[2], leak = !!a[4];
-        stains.push({ id: 's' + pad2(++si), room: rid, ax: BB.abs(rid, a[0]), z: a[1], w, wmax: leak ? 140 : w, p: 1, kind: a[3], leak: leak ? 1 : 0, wet: 0, seed: si * 37 + 11, seg: new Array(segCount(leak ? 140 : w)).fill(0) });
+        stains.push({ id: 's' + pad2(++si), room: rid, ax: BB.abs(rid, leak ? a[0] : jit(rid, a[0], 70)), z: leak ? a[1] : jz(a[1]), w, wmax: leak ? 140 : w, p: 1, kind: a[3], leak: leak ? 1 : 0, wet: 0, seed: si * 37 + 11 + (flat ? 0 : seed % 97), seg: new Array(segCount(leak ? 140 : w)).fill(0) });
       }
-      for (const a of P.dust) dust.push({ id: 'd' + pad2(++di), room: rid, ax: BB.abs(rid, a[0]), z: a[1], w: a[2], p: 1, seed: di * 53 + 5, seg: new Array(segCount(a[2])).fill(0) });
+      for (const a of P.dust) dust.push({ id: 'd' + pad2(++di), room: rid, ax: BB.abs(rid, jit(rid, a[0], 70)), z: jz(a[1]), w: a[2], p: 1, seed: di * 53 + 5 + (flat ? 0 : seed % 89), seg: new Array(segCount(a[2])).fill(0) });
     }
     const nT = items.filter(i => i.kind === 'trash').length, nC = items.filter(i => i.kind === 'cloth').length;
     return {
-      v: 1, mode: 'play', total, time: total, lazy: 0, slow: 1, slowExt: 1, slowTask: 1,
+      v: 1, seed, daily, mode: 'play', total, time: total, lazy: 0, slow: 1, slowExt: 1, slowTask: 1,
       f: {
         lightHall: 0, tvOn: 0, doorOpen: 0, phoneRing: 0, phoneUp: 0, boxesCleared: 0, closetOpen: 0, closetStash: 0,
         fridgeOpen: 0, fridgeDone: 0, fridgeStage: 0, fridgeRot: 6, dishesDone: 0, binFill: 0, bagFill: 0,
@@ -259,9 +273,9 @@
   const strip = (k, v) => (k[0] === '_' ? undefined : v);
   function serialize(S) { S = S || BB.S; return JSON.parse(JSON.stringify(S, strip)); }
   function restore(obj) {
-    const base = BB.newState(obj && obj.total || 480), o = obj || {};
+    const o = obj || {}, base = BB.newState(o.total || 480, o.seed != null ? { seed: o.seed } : { seed: 0, flat: true });
     const S = base;
-    for (const k of ['mode', 'total', 'time', 'lazy', 'active', 'slowExt']) if (o[k] != null) S[k] = o[k];
+    for (const k of ['mode', 'total', 'time', 'lazy', 'active', 'slowExt', 'daily']) if (o[k] != null) S[k] = o[k];
     if (o.mode === 'ending' || o.mode === 'menu') S.mode = 'play';
     for (const k in (o.f || {})) if (k in S.f || typeof o.f[k] === 'number') S.f[k] = +o.f[k] || 0;
     for (const k in (o.tools || {})) if (k in S.tools) S.tools[k] = o.tools[k] ? 1 : 0;
@@ -269,8 +283,9 @@
     for (const it of S.items) if (byId[it.id]) it.taken = byId[it.id].taken ? 1 : 0;
     const mergeList = (list, src) => { const m = {}; for (const a of (src || [])) m[a.id] = a; for (const a of list) { const b = m[a.id]; if (b) { a.p = +b.p; a.seg = Array.isArray(b.seg) ? b.seg.slice(0, a.seg.length) : a.seg; while (a.seg.length < segCount(a.wmax || a.w)) a.seg.push(0); if (b.w) a.w = +b.w; a.wet = +b.wet || 0; } } };
     mergeList(S.dust, o.dust); mergeList(S.stains, o.stains);
-    // leak puddles that were spawned after the start
-    for (const b of (o.stains || [])) if (b.leak && !S.stains.some(s => s.id === b.id)) S.stains.push(Object.assign({}, b));
+    // puddles / mess that appeared after the start (leaks, chaos events) and trash that spilled out of the wardrobe
+    for (const b of (o.stains || [])) if ((b.leak || b.chaos) && !S.stains.some(s => s.id === b.id)) S.stains.push(Object.assign({}, b));
+    for (const it of (o.items || [])) if (it.extra && !S.items.some(x => x.id === it.id)) S.items.push(Object.assign({}, it));
     for (const k of ['carry', 'bag', 'bin', 'wash', 'leak', 'stats']) if (o[k]) Object.assign(S[k], o[k]);
     if (o.calls) S.calls = JSON.parse(JSON.stringify(o.calls));
     for (const k in o) if (!(k in S) && k[0] !== '_' && typeof o[k] !== 'function') S[k] = o[k];     // keep fields other agents add
@@ -444,7 +459,7 @@
           if (BB.S !== S || S.carry.trash <= 0) return; const n = S.carry.trash; S.carry.trash = 0; S.f.closetStash = (S.f.closetStash || 0) + n; sfx('toss'); sfx('doorOpen'); syncFill(S);
           if (S.f.closetStash >= 5) {              // the wardrobe cannot take any more: boom
             const k = S.f.closetStash; S.f.closetStash = 0; sfx('bad'); if (BB.cam) BB.cam.shake = 1; addTime(S, 8, 'closetBoom');
-            for (let i = 0; i < k; i++) S.items.push({ id: 'x' + Math.floor(Math.random() * 1e6), kind: 'trash', v: (i * 5 + 3) % 16, room: 'hall', ax: BB.abs('hall', 470 + i * 14), z: -10 + (i % 3) * 22, taken: 0 });
+            for (let i = 0; i < k; i++) S.items.push({ id: 'x' + Math.floor(Math.random() * 1e6), kind: 'trash', v: (i * 5 + 3) % 16, room: 'hall', ax: BB.abs('hall', 470 + i * 14), z: -10 + (i % 3) * 22, taken: 0, extra: 1 });
             say('boom', { k: 'boom' }, 9, true); toast('Шкаф не выдержал! Весь мусор вывалился обратно, −8 сек');
           } else { say('stash', { k: 'stash' }, 6, true); toast('Мусор спрятан в шкафу: ' + S.f.closetStash + '/4. Хозяин туда лазить не будет... наверное'); }
           check(S);
@@ -597,6 +612,14 @@
   function howlAudio(S) {
     const fx = BB.abs('bath', 250), on = !S.f.faucetFixed && S.f.faucetHowl && Math.abs(P().x - fx) < 650;
     if (on !== L.howlOn) { L.howlOn = on; if (BB.audio && BB.audio.loop) try { BB.audio.loop('faucetHowl', !!on, { x: fx }); } catch (e) { } }
+  }
+
+  /* switch the active tool from the hotbar / keys / gamepad; resets the idle timer, otherwise the tool would snap back to 'hand' within a frame */
+  function setTool(id) {
+    const S = BB.S; if (!S || !S.tools) return false;
+    if (id !== 'hand' && !S.tools[id]) return false;
+    if (L.using && L.using !== id) return false;
+    S.active = id; L.idleT = 0; return true;
   }
 
   /* ----------------------------------------------------------- held / slowdown */
@@ -753,7 +776,7 @@
 
   /* ---------------------------------------------------------------- exports */
   BB.tasks = {
-    CFG, prompt, interact, nothingHere, progress, checklist, serialize, restore, repair, check,
+    CFG, prompt, interact, nothingHere, progress, checklist, serialize, restore, repair, check, setTool,
     penalty: (sec, why) => { if (BB.S) addTime(BB.S, sec, why); },
     hotspotFor: id => BB.world && BB.world.hot ? BB.world.hot(id) : null,
     PLAN, ROOM_RU, _L: L
