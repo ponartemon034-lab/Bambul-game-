@@ -7,7 +7,7 @@ let pass = 0, fail = 0; const ok = (n, c, i) => { (c ? pass++ : fail++); console
 srv.listen(0, async () => {
   const br = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--no-sandbox', '--autoplay-policy=no-user-gesture-required'] });
   const pg = await br.newPage(); const errs = []; pg.on('pageerror', e => errs.push(e.message)); pg.on('console', m => { if (m.type() === 'error' && !/404|Failed to load resource/.test(m.text())) errs.push(m.text()); });
-  await pg.goto('http://localhost:' + srv.address().port + '/index.html?autostart=1'); await pg.waitForFunction(() => window.BB && BB.built); await pg.waitForTimeout(2500);
+  await pg.goto('http://localhost:' + srv.address().port + '/index.html?autostart=1&q=low&enhance=0'); await pg.waitForFunction(() => window.BB && BB.built); await pg.waitForTimeout(2500);
   await pg.evaluate(() => { BB.story.skipIntro && BB.story.skipIntro(); window.__log = []; const sp = BB.voice.speak; BB.voice.speak = (t, w) => { window.__log.push([w, t]); return sp(t, w); }; });
   // 1. the 60 authored lines + laundry lines exist as pools and have clips
   const r1 = await pg.evaluate(async () => {

@@ -16,7 +16,7 @@ const check = (name, ok, info) => { (ok ? pass++ : fail++); console.log((ok ? 'P
   const logs = [];
   pg.on('console', m => { const t = m.text(); if (['error', 'warning'].includes(m.type()) && !/Failed to load resource|fonts\.g|net::ERR/.test(t)) logs.push(m.type() + ': ' + t); });
   pg.on('pageerror', e => logs.push('PAGEERROR: ' + e.message));
-  await pg.goto('http://localhost:' + port + '/index.html', { waitUntil: 'load' });
+  await pg.goto('http://localhost:' + port + '/index.html?q=low&enhance=0', { waitUntil: 'load' });
   await pg.waitForFunction(() => window.BB && BB.built, { timeout: 90000 });
   const ev = (f, a) => pg.evaluate(f, a);
   const wait = ms => pg.waitForTimeout(ms);

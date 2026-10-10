@@ -108,7 +108,7 @@ T.fridge = async () => {
   const br = await chromium.launch({ executablePath: process.env.CHROME || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--no-sandbox', '--use-gl=swiftshader', '--ignore-gpu-blocklist'] }).catch(async () => chromium.launch({ args: ['--no-sandbox'] }));
   pg = await br.newPage({ viewport: { width: +(process.env.W || 1280), height: +(process.env.H || 720) } });
   const errs = []; pg.on('console', m => { if (m.type() === 'error' && !/404|Failed to load resource/.test(m.text())) errs.push(m.text()); }); pg.on('pageerror', e => errs.push('PAGEERROR: ' + e.message));
-  await pg.goto('http://localhost:' + port + '/index.html', { waitUntil: 'load' });
+  await pg.goto('http://localhost:' + port + '/index.html?q=low&enhance=0', { waitUntil: 'load' });
   await pg.waitForFunction(() => window.BB && BB.built, { timeout: 60000 }).catch(() => errs.push('build timeout'));
   await ev(() => { if (BB.ui) BB.ui.busy = () => false; });
   for (const id of (want.length ? want : Object.keys(T))) { try { await T[id](); } catch (e) { fails++; console.log('  FAIL (exception) ' + id + ': ' + e.message); await shot('ERR_' + id).catch(() => { }); if (await ev(() => BB.mini.active).catch(() => 0)) await ev(() => BB.mini.abort()).catch(() => { }); } }
