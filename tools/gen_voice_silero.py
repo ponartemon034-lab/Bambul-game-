@@ -4,7 +4,7 @@ import sys, json, hashlib, os, re, subprocess, io, wave
 import numpy as np, torch
 torch.set_num_threads(4)
 lines = json.load(open(sys.argv[1])); out = 'assets/voice'; os.makedirs(out, exist_ok=True)
-model = torch.package.PackageImporter('/tmp/silero/v4_ru.pt').load_pickle('tts_models', 'model'); model.to('cpu')
+model = torch.package.PackageImporter(os.environ.get('SILERO_MODEL', '/tmp/silero/v4_ru.pt')).load_pickle('tts_models', 'model'); model.to('cpu')
 SPK = {'bamboul': 'eugene', 'dan': 'aidar', 'landlord': 'aidar'}
 FX = {'bamboul': 'asetrate=48000*1.2,aresample=24000,atempo=0.833', 'dan': 'asetrate=48000*1.04,aresample=24000,atempo=0.96', 'landlord': 'asetrate=48000*0.88,aresample=24000,atempo=1.136,acompressor=threshold=0.1:ratio=3'}
 ONES = 'ноль один два три четыре пять шесть семь восемь девять десять одиннадцать двенадцать тринадцать четырнадцать пятнадцать шестнадцать семнадцать восемнадцать девятнадцать'.split()
@@ -53,11 +53,19 @@ def synth(text, who, emo):
         try: wav.append(model.apply_tts(ssml_text=ssml(c, emo), speaker=SPK[who], sample_rate=48000, put_accent=True, put_yo=True).numpy())
         except Exception: wav.append(model.apply_tts(text=c, speaker=SPK[who], sample_rate=48000, put_accent=True, put_yo=True).numpy())
     return np.concatenate(wav) if wav else None
-manifest = {}; mpath = out + '/manifest.json'
+def fnv(s):
+    h = 0x811c9dc5
+    for ch in s: h ^= ord(ch); h = (h * 0x01000193) & 0xffffffff
+    return '%08x' % h
+# incremental: keep the existing (fnv-keyed) manifest and add only new clips; set REGEN=1 to redo everything
+mpath = out + '/manifest.json'
+manifest = json.load(open(mpath)) if os.path.exists(mpath) and not os.environ.get('REGEN') else {}
 n = 0
 for i, l in enumerate(lines):
     who = l['who']
     if who not in SPK: continue
+    fk = fnv(who + '|' + norm(l['text']))
+    if fk in manifest and os.path.exists(f'{out}/' + manifest[fk]): continue
     k = key(who, l['text']); os.makedirs(f'{out}/{who}', exist_ok=True); fp = f'{out}/{who}/{k}.mp3'
     text = clean(l['text'])
     if not re.search('[А-Яа-я]', text): continue
@@ -69,6 +77,6 @@ for i, l in enumerate(lines):
     caps = len(re.sub(r'[^А-ЯЁ]', '', l['text'])) / max(1, len(re.sub(r'[^А-Яа-яЁё]', '', l['text'])))
     af = FX[who] + ',loudnorm=I=-18:TP=-1.5:LRA=9,volume=%ddB,alimiter=limit=0.95' % (PROS[emo][2] + (1 if caps > .55 else 0))
     p = subprocess.run(['ffmpeg', '-v', 'error', '-y', '-f', 's16le', '-ar', '48000', '-ac', '1', '-i', 'pipe:0', '-af', af, '-ac', '1', '-ar', '24000', '-b:a', '28k', fp], input=pcm)
-    if p.returncode == 0: manifest[k] = f'{who}/{k}.mp3'; n += 1
+    if p.returncode == 0: manifest[fk] = f'{who}/{k}.mp3'; n += 1
     if i % 25 == 0: print(i, len(lines), n, flush=True); json.dump(manifest, open(mpath, 'w'))
 json.dump(manifest, open(mpath, 'w'), ensure_ascii=False); print('done', n, 'clips')

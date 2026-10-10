@@ -1,0 +1,15 @@
+{
+  "name": "bambul-game",
+  "version": "0.2.0",
+  "private": true,
+  "description": "БАМБУЛЬ: ХОЗЯИН ЕДЕТ — browser game, no build step",
+  "scripts": {
+    "dev": "python3 -m http.server 8000",
+    "test": "node tests/dlg_selftest.js && node tools/test_dread.js && node tools/test_story.js && node tools/test_voice.js",
+    "test:all": "npm test && node tools/test_tasks.js && node tools/test_stations.js && node tools/test_ui.js",
+    "voice:new": "node tools/collect_new_lines.js /tmp/lines_new.json && python3 tools/gen_voice_silero.py /tmp/lines_new.json"
+  },
+  "devDependencies": {
+    "playwright": "^1.50.0"
+  }
+}

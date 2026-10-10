@@ -1,12 +1,12 @@
 // Usage: node tools/test_tasks.js   - drives the real page with tests/tasks_selftest.js, prints the log, exits 1 on failure.
-const { chromium } = require('/opt/node22/lib/node_modules/playwright');
+const { chromium, chromePath } = require('./_pw');
 const http = require('http'), fs = require('fs'), path = require('path');
 const root = path.resolve(__dirname, '..');
 const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.json': 'application/json' };
 (async () => {
   const srv = http.createServer((q, r) => { let p = decodeURIComponent(q.url.split('?')[0]); if (p === '/') p = '/index.html'; fs.readFile(path.join(root, p), (e, d) => { if (e) { r.writeHead(404); r.end('nf'); return; } r.writeHead(200, { 'content-type': mime[path.extname(p)] || 'application/octet-stream' }); r.end(d); }); });
   await new Promise(r => srv.listen(0, r));
-  const br = await chromium.launch({ executablePath: process.env.CHROME || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--no-sandbox', '--use-gl=swiftshader', '--ignore-gpu-blocklist'] }).catch(() => chromium.launch({ args: ['--no-sandbox'] }));
+  const br = await chromium.launch({ executablePath: chromePath(), args: ['--no-sandbox', '--use-gl=swiftshader', '--ignore-gpu-blocklist'] }).catch(() => chromium.launch({ args: ['--no-sandbox'] }));
   const pg = await br.newPage({ viewport: { width: 1280, height: 720 } });
   const errs = []; pg.on('console', m => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) errs.push(m.text()); }); pg.on('pageerror', e => errs.push('PAGEERROR ' + e.message));
   await pg.goto('http://localhost:' + srv.address().port + '/index.html' + (process.argv[2] || '?autostart'), { waitUntil: 'load' });

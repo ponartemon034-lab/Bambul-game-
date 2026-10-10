@@ -1,7 +1,7 @@
 // Usage: node tools/test_mini.js [fridge faucet toilet printer dishes mirror vacJam]   (default: all)
 // Loads index.html in Chromium, forces a fresh state S, runs each BB.mini minigame end-to-end with REAL pointer/keyboard
 // input (and a wrong-choice path), asserts flags + onDone results, saves a screenshot per stage into $MINI_OUT.
-const { chromium } = require('/opt/node22/lib/node_modules/playwright');
+const { chromium, chromePath } = require('./_pw');
 const http = require('http'), fs = require('fs'), path = require('path'), os = require('os');
 const root = path.resolve(__dirname, '..');
 const OUT = process.env.MINI_OUT || path.join(os.tmpdir(), 'mini_shots');
@@ -105,7 +105,7 @@ T.fridge = async () => {
 
 (async () => {
   const want = process.argv.slice(2); const srv = await serve(); const port = srv.address().port;
-  const br = await chromium.launch({ executablePath: process.env.CHROME || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--no-sandbox', '--use-gl=swiftshader', '--ignore-gpu-blocklist'] }).catch(async () => chromium.launch({ args: ['--no-sandbox'] }));
+  const br = await chromium.launch({ executablePath: chromePath(), args: ['--no-sandbox', '--use-gl=swiftshader', '--ignore-gpu-blocklist'] }).catch(async () => chromium.launch({ args: ['--no-sandbox'] }));
   pg = await br.newPage({ viewport: { width: +(process.env.W || 1280), height: +(process.env.H || 720) } });
   const errs = []; pg.on('console', m => { if (m.type() === 'error' && !/404|Failed to load resource/.test(m.text())) errs.push(m.text()); }); pg.on('pageerror', e => errs.push('PAGEERROR: ' + e.message));
   await pg.goto('http://localhost:' + port + '/index.html?q=low&enhance=0', { waitUntil: 'load' });

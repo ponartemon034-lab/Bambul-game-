@@ -1,6 +1,6 @@
 // Headless story-flow test.  Usage: node tools/test_story.js
 // Boots index.html, drives BB.story (intro, calls, thresholds, endings, save/load) and prints PASS/FAIL per check.
-const { chromium } = require('/opt/node22/lib/node_modules/playwright');
+const { chromium, chromePath } = require('./_pw');
 const http = require('http'), fs = require('fs'), path = require('path');
 const root = path.resolve(__dirname, '..');
 const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.json': 'application/json', '.webp': 'image/webp', '.svg': 'image/svg+xml' };
@@ -11,7 +11,7 @@ const check = (name, ok, info) => { (ok ? pass++ : fail++); console.log((ok ? 'P
 
 (async () => {
   const srv = await serve(), port = srv.address().port;
-  const br = await chromium.launch({ executablePath: process.env.CHROME || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--no-sandbox', '--use-gl=swiftshader', '--ignore-gpu-blocklist'] }).catch(() => chromium.launch({ args: ['--no-sandbox'] }));
+  const br = await chromium.launch({ executablePath: chromePath(), args: ['--no-sandbox', '--use-gl=swiftshader', '--ignore-gpu-blocklist'] }).catch(() => chromium.launch({ args: ['--no-sandbox'] }));
   const pg = await br.newPage({ viewport: { width: 1280, height: 720 } });
   const logs = [];
   pg.on('console', m => { const t = m.text(); if (['error', 'warning'].includes(m.type()) && !/Failed to load resource|fonts\.g|net::ERR/.test(t)) logs.push(m.type() + ': ' + t); });

@@ -172,7 +172,7 @@
     CD[cat] = t;
     const dur = opts.dur || durOf(text);
     if (blocked) {                                                  // keep important lines, drop stale ones
-      queue.push({ text, who, prio, dur, exp: t + 6, cat });
+      queue.push({ text, who, prio, dur, exp: Math.max(t + 6, (cur ? cur.until : t) + 1.5), cat });
       if (queue.length > 2) { queue.sort((a, b) => b.prio - a.prio); queue.length = 2; }
       return text;
     }
@@ -797,7 +797,7 @@
   ]);
   D('sofa', [
     'Пять минуточек. Я заслужил. Чем — не помню.',
-    'Диван, не сейчас. Я сказал, не сейчас! ...Ладно, чуть-чуть.',
+    'Диван, не сейчас. Я сказал, не сейчас! …Ладно, чуть-чуть.',
     'Полежал. Время идёт, сука, а я лежу.',
     'Диван принял меня, как родного. Предатель.'
   ]);

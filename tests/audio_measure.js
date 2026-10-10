@@ -2,7 +2,7 @@
 // - calibrate: renders every sound untrimmed in an OfflineAudioContext, computes per-sound trims, writes them into js/audio.js
 // - report:    renders with trims, prints peak / active-RMS table
 // - live:      real AudioContext (autoplay allowed): every sound, stress, leak/node-count checks, limiter check
-const { chromium } = require('/opt/node22/lib/node_modules/playwright');
+const { chromium, chromePath } = require('../tools/_pw');
 const http = require('http'), fs = require('fs'), path = require('path');
 const root = path.resolve(__dirname, '..');
 const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png' };

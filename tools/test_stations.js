@@ -1,12 +1,12 @@
 // Usage: node tools/test_stations.js   - plays dishes/mirror/faucet/toilet/printer/vacJam end-to-end with REAL pointer input.
-const { chromium } = require('/opt/node22/lib/node_modules/playwright');
+const { chromium, chromePath } = require('./_pw');
 const http = require('http'), fs = require('fs'), path = require('path'), os = require('os');
 const root = path.resolve(__dirname, '..'), OUT = process.env.MINI_OUT || path.join(os.tmpdir(), 'st_shots'); fs.mkdirSync(OUT, { recursive: true });
 const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.json': 'application/json' };
 (async () => {
   const srv = http.createServer((q, r) => { let p = decodeURIComponent(q.url.split('?')[0]); if (p === '/') p = '/index.html'; fs.readFile(path.join(root, p), (e, d) => { if (e) { r.writeHead(404); r.end(); return; } r.writeHead(200, { 'content-type': mime[path.extname(p)] || 'application/octet-stream' }); r.end(d); }); });
   await new Promise(r => srv.listen(0, r));
-  const br = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--no-sandbox'] });
+  const br = await chromium.launch({ executablePath: chromePath(), args: ['--no-sandbox'] });
   const pg = await br.newPage({ viewport: { width: 1280, height: 720 } }); const errs = [];
   pg.on('pageerror', e => errs.push(e.message)); pg.on('console', m => { if (m.type() === 'error' && !/Failed to load/.test(m.text())) errs.push(m.text()); });
   await pg.goto('http://localhost:' + srv.address().port + '/index.html?autostart&q=low&enhance=0'); await pg.waitForFunction(() => window.BB && BB.built); await pg.waitForTimeout(1200);

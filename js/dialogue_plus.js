@@ -182,6 +182,8 @@
   // ---- pools (weights make the authored 60 lines come up often) ----
   add('owner:comes', L.owner, 3); add('owner:left', L.left, 3); add('allDone', L.done, 3);
   add('chore:avoid', L.chore, 2); add('tired', L.tired, 2); add('wait', L.wait, 2); add('oops', L.oops, 2); add('move', L.move, 1);
+  // the authored boss/chore/trash/tap/tired/idle/mishap lines are also muttered while walking around
+  add('move', [].concat(L.owner, L.chore, L.trash, L.faucet, L.tired, L.wait, L.oops), 2.5);
   add('laundry:pick', L.laundry.pick); add('laundry:load', L.laundry.load); add('laundry:start', L.laundry.start); add('laundry:wait', L.laundry.wait); add('laundry:noise', L.laundry.noise);
   add('pickup', L.trash, 2); add('toss', [L.trash[0], L.trash[3], L.trash[5]], 2);
   add('faucet:open', [L.faucet[0], L.faucet[2], L.faucet[3], L.faucet[6]], 3); add('faucet:wrong', [L.faucet[1], L.faucet[4]], 3); add('faucet:inspect', [L.faucet[5], L.faucet[7]], 3); add('faucet:neighbours', [L.faucet[0], L.faucet[3]], 2);
@@ -191,7 +193,7 @@
   Object.assign(dlg.EMO_CAT = {}, { 'idle': 'tired', 'tired': 'tired', 'wait': 'tired', 'move': 'grumble', 'fail': 'angry', 'oops': 'angry', 'spam': 'annoyed', 'time:300': 'annoyed', 'time:120': 'angry', 'time:60': 'panic', 'time:30': 'panic', 'time:10': 'panic', 'success': 'relief', 'allDone': 'relief',
     'owner:left': 'relief', 'owner:comes': 'annoyed', 'boom': 'surprise', 'jump': 'surprise', 'land': 'grumble', 'faucet:open': 'angry', 'faucet:wrong': 'angry', 'vac:snag': 'angry', 'fridge:disgust': 'surprise', 'fridge:open': 'surprise', 'toilet:flush': 'relief', 'faucet:done': 'relief', 'mop:done': 'relief', 'vac:done': 'relief', 'toilet:done': 'relief', 'printer:success': 'relief', 'cleanLow': 'annoyed' });
 
-  Object.assign(dlg._META, { 'owner:comes': { prio: 6, cd: 6 }, 'owner:left': { prio: 6, cd: 0 }, 'allDone': { prio: 5, cd: 0 }, 'tired': { prio: 1, cd: 35 }, 'wait': { prio: 1, cd: 30 }, 'move': { prio: 1, cd: 12 }, 'chore:avoid': { prio: 2, cd: 12 }, 'oops': { prio: 3, cd: 10 },
+  Object.assign(dlg._META, { 'owner:comes': { prio: 6, cd: 6 }, 'owner:left': { prio: 6, cd: 0 }, 'allDone': { prio: 5, cd: 0 }, 'tired': { prio: 1, cd: 35 }, 'wait': { prio: 1, cd: 30 }, 'move': { prio: 1, cd: 7 }, 'chore:avoid': { prio: 2, cd: 12 }, 'oops': { prio: 3, cd: 10 },
     'laundry:pick': { prio: 2, cd: 6 }, 'laundry:load': { prio: 2, cd: 6 }, 'laundry:start': { prio: 3, cd: 6 }, 'laundry:wait': { prio: 1, cd: 14 }, 'laundry:noise': { prio: 1, cd: 14 } });
   /* ------------------------------------------------------------ event router */
   // gameplay modules bark with coarse categories; map them (plus their context) onto the real pools
@@ -235,7 +237,7 @@
     const busy = BB.ui && BB.ui.busy && BB.ui.busy();
     // long walks -> short mumbling
     const dx = Math.abs(P.x - T.last.x); T.last.x = P.x; if (dx < 40) T.walk += dx;
-    if (T.walk > 420 && !busy) { T.walk = 0; dlg.bark('move', { S }); }
+    if (T.walk > 240 && !busy) { T.walk = 0; dlg.bark('move', { S }); }
     // waiting / doing nothing
     const still = !P.act && Math.abs(P.vx) < 5 && !busy; T.waitAt = still ? T.waitAt + dt : 0;
     if (T.waitAt > 26) { T.waitAt = 0; dlg.bark(rnd() < .55 ? 'wait' : 'tired', { S }); }

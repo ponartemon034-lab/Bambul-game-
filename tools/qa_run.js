@@ -1,7 +1,7 @@
 // Full-game QA runner (Playwright). Usage: node tools/qa_run.js [outDir]
 // Boots index.html, walks the whole apartment, captures screenshots, checks console errors, scale,
 // parallax, UI buttons, hotspots and the main task loop. Prints a JSON-ish report.
-const { chromium } = require('/opt/node22/lib/node_modules/playwright');
+const { chromium, chromePath } = require('./_pw');
 const http = require('http'), fs = require('fs'), path = require('path');
 const root = path.resolve(__dirname, '..');
 const out = path.resolve(process.argv[2] || path.join(root, 'docs/screenshots'));
@@ -12,7 +12,7 @@ const rep = { checks: [], errors: [] };
 const ok = (name, pass, info) => { rep.checks.push({ name, pass: !!pass, info }); console.log((pass ? 'PASS ' : 'FAIL ') + name + (info !== undefined ? '  ' + JSON.stringify(info) : '')); };
 (async () => {
   await new Promise(r => srv.listen(0, r)); const port = srv.address().port;
-  const br = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--no-sandbox', '--autoplay-policy=no-user-gesture-required'] });
+  const br = await chromium.launch({ executablePath: chromePath(), args: ['--no-sandbox', '--autoplay-policy=no-user-gesture-required'] });
   const pg = await br.newPage({ viewport: { width: 1280, height: 720 } });
   pg.on('console', m => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) rep.errors.push(m.text()); });
   pg.on('pageerror', e => rep.errors.push('PAGEERROR ' + e.message));

@@ -1,7 +1,7 @@
 // UI/input test: node tools/test_ui.js [--shots dir]
 // Serves the repo, loads index.html?mock=1 (mock story/tasks/char only if the real modules are absent),
 // clicks every visible button and key shortcut, checks callbacks/state, takes screenshots, prints PASS/FAIL.
-const { chromium } = require('/opt/node22/lib/node_modules/playwright');
+const { chromium, chromePath } = require('./_pw');
 const http = require('http'), fs = require('fs'), path = require('path');
 const root = path.resolve(__dirname, '..');
 const OUT = process.argv.includes('--shots') ? process.argv[process.argv.indexOf('--shots') + 1] : '/tmp/claude-0/s';
@@ -293,7 +293,7 @@ async function touchTests(br, port, w, h, dpr, tag) {
 
 (async () => {
   const s = await srv(), port = s.address().port;
-  const br = await chromium.launch({ executablePath: process.env.CHROME || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--no-sandbox', '--use-gl=swiftshader', '--ignore-gpu-blocklist'] }).catch(() => chromium.launch({ args: ['--no-sandbox'] }));
+  const br = await chromium.launch({ executablePath: chromePath(), args: ['--no-sandbox', '--use-gl=swiftshader', '--ignore-gpu-blocklist'] }).catch(() => chromium.launch({ args: ['--no-sandbox'] }));
   const all = [];
   all.push(...await desktop(br, port, 1920, 1080, 'd1920', false));
   all.push(...await desktop(br, port, 1280, 720, 'd1280', true));

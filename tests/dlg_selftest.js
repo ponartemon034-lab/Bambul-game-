@@ -109,7 +109,7 @@ ok(qlen === 1, 'interaction-priority bark gets queued (len ' + qlen + ')');
 ok(dlg.bark('idle:l1', { S: S0 }) === null, 'idle never queues behind a higher bark');
 dlg._tick(0.2);
 ok(said.length === 2, 'queued bark waits while current is showing');
-dlg._tick(8);
+for (let i = 0; i < 16; i++) dlg._tick(0.5);          // frame-like steps: a queued bark must be shown once the current one ends
 ok(said.length === 3 && dlg.queueLength() === 0, 'queued bark shown after current expires');
 dlg._tick(5);
 ok(dlg.bark('landlordBark', { S: S0 }) !== null && said[said.length - 1].o.who === 'landlord' && said[said.length - 1].o.prio === 6, 'landlord bark: who=landlord prio 6');
