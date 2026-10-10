@@ -348,7 +348,8 @@
     const cyc = st === 'walk' || st === 'run' || st === 'carry';
     g.save(); const fc = Math.abs(inst.face) < .12 ? .12 * Math.sign(inst.face || 1) : inst.face; g.scale(fc, 1);
     const draw = (im, ox, oy, sc) => { const w = im.width * k * (sc || 1), h = im.height * k * (sc || 1); g.drawImage(im, -w / 2 + (ox || 0), -h + (oy || 0), w, h); };
-    if (st === 'sit') {                                   // sprawled on the sofa: torso thrown back, legs stretched out forward
+    const rigOn = !!(inst.rigModel && inst.rigModel.ready && inst.rigI && inst.rigI.out);
+    if (st === 'sit' && !rigOn) {                         // sprawled on the sofa (old sprite, only used while the rig is not available): torso thrown back, legs stretched out forward
       const im = I.idle, w = im.width * k, h = im.height * k, hipY = h * .5, br = S_(t * 1.6) * .012, hip = 38;
       g.translate(-4, (h - hipY) - hip);
       const part = (y0, y1, ang, px, py) => { g.save(); g.translate(px, py); g.rotate(ang); g.translate(-px, -py); g.beginPath(); g.rect(-w, -h + y0, w * 2, y1 - y0); g.clip(); g.drawImage(im, -w / 2, -h, w, h); g.restore(); };
@@ -358,7 +359,7 @@
       if (held) drawHeld(g, held, 18, -86, p, t);
       g.restore(); return;
     }
-    if (BB.rig && BB.rig.ready && inst.rigI && inst.rigI.out) {   // physical skeleton
+    if (inst.rigModel && inst.rigModel.ready && inst.rigI && inst.rigI.out) {   // physical skeleton
       const shake = st === 'panic' ? S_(t * 40) * 1.2 : 0; g.translate(shake, 0);
       const hp = inst.rigI.draw(g, held, drawHeld, p, t) || [22, -86];
       if (held === 'mop' || held === 'vac') drawTool(g, held, p, hp[0], hp[1]);
@@ -386,6 +387,65 @@
     g.restore();
   }
 
+  /* ---- photo-real frame set (assets/char/real/*.webp, cut from the user's sprite sheet by tools/cut_real_sprites.py) ----
+     Whole-body frames, never cut into parts: no torn or doubled limbs.  Every game state picks one frame (walk / run are
+     synced to the step phase); idle poses get breathing and sway, work poses a small working jitter. */
+  const RF = { ready: false, img: {}, meta: null };
+  (function loadReal() {
+    const M = BB.REAL_META; if (typeof Image === 'undefined' || !M) return;
+    const names = Object.keys(M.frames); let left = names.length; RF.meta = M;
+    names.forEach(n => { const im = new Image(); im.onload = () => { if (--left === 0) RF.ready = true; }; im.onerror = () => { left = -1; }; im.src = 'assets/char/real/' + n + '.webp'; RF.img[n] = im; });
+  })();
+  const frac = x => x - Math.floor(x);
+  // state -> [frame, hand x, hand y] (hand in cm, origin at the feet, facing +x); a function picks by time / progress
+  function realFrame(st, inst) {
+    const t = inst.t, a = inst.actT || 0, ph = frac(inst.phase / (2 * Math.PI)), c = inst.ctl || {};
+    const idle = () => ['idle_' + [0, 1, 2, 1][Math.floor(t * 1.6) % 4], 20, -82];
+    switch (st) {
+      case 'walk': case 'carry': return ['walk_' + (Math.floor(ph * 7) % 7), 8, -80];
+      case 'run': case 'stumble': return ['run_' + (Math.floor(ph * 8) % 8), 12, -86];
+      case 'jump': return [(c.vy || 0) > 260 ? 'jump' : 'air', 18, -60];
+      case 'fall': return ['air', 18, -60];
+      case 'land': return ['crouch', 22, -30];
+      case 'pickup': return [a < .5 ? 'crouch2' : 'reach', 34, -12];
+      case 'putBag': case 'toss': return [a < .5 ? 'reach' : 'crouch2', 34, -14];
+      case 'scrub': case 'scrubToilet': case 'repair': case 'tinker': case 'inspectLow': return ['reach', 34, -14];
+      case 'scrubFridge': case 'open': case 'openFridge': case 'door': case 'reach': case 'inspect': case 'flush': case 'haul':
+      case 'mop': case 'vac': case 'turn': case 'point': return ['side', 8, -78];
+      case 'tired': case 'fail': case 'disgust': return ['crouch2', 20, -40];
+      case 'phone': case 'phoneUse': case 'listen': return ['phone_' + (Math.floor(t * .7) % 2), 12, -150];
+      case 'nervous': return ['call_' + [0, 1][Math.floor(t * 1.2) % 2], 12, -150];
+      case 'wave': case 'cheer': return ['call_4', 26, -160];
+      default: return idle();
+    }
+  }
+  function drawReal(inst, g) {
+    const st = inst.state, held = inst.held, t = inst.t, p = inst.pose, M = RF.meta;
+    const [name, hx, hy] = realFrame(st, inst);
+    const im = RF.img[name], f = M.frames[name]; if (!im || !f) return false;
+    const k = inst.L.h / 652;                            // a standing frame (652 px) is the hero's height
+    g.save();
+    const fc = Math.abs(inst.face) < .12 ? .12 * Math.sign(inst.face || 1) : inst.face; g.scale(fc, 1);
+    const idleish = name.startsWith('idle') || name.startsWith('phone') || name.startsWith('call') || name === 'side';
+    const work = st === 'scrub' || st === 'scrubToilet' || st === 'scrubFridge' || st === 'repair' || st === 'tinker' || st === 'mop' || st === 'vac';
+    let dx = 0, dy = 0, sx = 1, sy = 1, rot = 0;
+    if (idleish) { const b = S_(t * 2.1); sy = 1 + b * .006; sx = 1 - b * .003; dx = S_(t * .8) * .6; }
+    if (work) { dx += S_(t * 13) * 1.6; rot = S_(t * 13) * .012; }
+    if (st === 'panic' || st === 'shock') dx += S_(t * 40) * 1.3;
+    if (st === 'angry') rot = S_(t * 9) * .02;
+    if (st === 'cheer') dy = -Math.abs(S_(t * 7)) * 8;
+    if (st === 'land') { sy = .97; sx = 1.02; }
+    if (st === 'walk' || st === 'carry') dy = -Math.abs(S_(inst.phase)) * 1.2;
+    if (st === 'stumble') rot = .1 + S_(t * 14) * .04;
+    g.translate(dx, dy); g.rotate(rot); g.scale(sx, sy);
+    if (held === 'mop' || held === 'vac') drawTool(g, held, p, hx, hy);
+    const w = f.w * k, h = f.h * k;
+    g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+    g.drawImage(im, -f.ax * k, -h, w, h);
+    if (held && held !== 'mop' && held !== 'vac' && !(held === 'phone' && (name.startsWith('phone') || name.startsWith('call')))) drawHeld(g, held, hx, hy, p, t);
+    g.restore(); return true;
+  }
+
   /* ---- the rig ---- */
   function createRig(kind) {
     const L = LOOKS[kind], sc = L.h / 178;
@@ -397,13 +457,15 @@
       { const at = armTargets(inst.state, inst.t, inst.actT, inst.held); inst.arm = inst.arm || Object.assign({}, at); const ka = 1 - Math.exp(-dt * 16); for (const q in at) inst.arm[q] = lerp(inst.arm[q], at[q], ka); }
       const tg = poseFor(inst.state, inst.t, inst.phase, inst.actT, ctl);
       const a = 1 - Math.exp(-dt * (cyc ? 40 : 15)); for (const k in tg) inst.pose[k] = inst.pose[k] === undefined ? tg[k] : lerp(inst.pose[k], tg[k], k === 'eye' ? Math.min(1, a * 3) : a);
-      if (kind === 'bamboul' && BB.rig && BB.rig.ready) {          // physical skeleton (js/rig.js): drives every state except the sofa sprawl
-        inst.rigI = inst.rigI || BB.rig.create();
-        inst.rigI.update(dt, { phase: inst.phase, t: inst.t, vy: ctl.vy }, inst.state, inst.held, inst.pose, inst.arm);
+      const RGM = (BB.CFG && BB.CFG.vectorHero && BB.rigV && BB.rigV.ready) ? BB.rigV : BB.rig;       // painted-sprite skeleton (default) or the experimental vector body
+      if (kind === 'bamboul' && RGM && RGM.ready) {          // physical skeleton (js/rig.js): drives every state except the sofa sprawl
+        if (inst.rigModel !== RGM) { inst.rigI = RGM.create(); inst.rigModel = RGM; }
+        inst.rigI.update(dt, { phase: inst.phase, t: inst.t, vy: ctl.vy, speed: ctl.speed }, inst.state, inst.held, inst.pose, inst.arm);
       }
     };
     inst.draw = function (g, t) {
       if (kind === 'bamboul' && TOON.ready && (BB.CFG && BB.CFG.realHero === false)) return drawToon(inst, g);
+      if (kind === 'bamboul' && RF.ready && inst.state !== 'sit' && !(BB.CFG && BB.CFG.photoHero === false) && drawReal(inst, g)) return;
       if (kind === 'bamboul' && HS.ready) return drawHeroSprite(inst, g);
       const p = inst.pose, held = inst.held, st = inst.state;
       g.save(); g.scale(sc, sc);

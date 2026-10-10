@@ -13,7 +13,7 @@
   const safe = (f, d) => { try { return f(); } catch (e) { console.error('[ui]', e); return d; } };
 
   /* ------------------------------------------------------------------ CFG */
-  const CFG_DEF = { vol: .7, music: false, sfx: true, musicVol: .8, sfxVol: 1, censor: false, subs: true, touch: false, quality: 'auto', realHero: true, enhance: true, voice: true, voiceVol: 1, dread: true, debug: false, muted: false };
+  const CFG_DEF = { vol: .7, music: false, sfx: true, musicVol: .8, sfxVol: 1, censor: false, subs: true, touch: false, quality: 'auto', realHero: true, enhance: true, voice: true, voiceVol: 1, dread: true, vectorHero: false, photoHero: true, debug: false, muted: false };
   let stored = {}; try { stored = JSON.parse(localStorage.getItem('bamboul.cfg') || '{}') || {}; } catch (e) { }
   const CFG = BB.CFG = Object.assign(BB.CFG || {}, CFG_DEF, stored);
   BB.saveCFG = () => { try { localStorage.setItem('bamboul.cfg', JSON.stringify(CFG)); } catch (e) { } };
@@ -584,6 +584,7 @@
     box.append(
       row('Громкость', slider('vol')), row('Звуки', slider('sfxVol')),
       row('Запикать мат', toggle('censor'), 'Звёздочки вместо крепких слов'),
+      row('Фото-спрайты героя', toggle('photoHero'), 'Кадры из реалистичного листа спрайтов. Выключи — будет скелетная модель'),
       row('Реалистичный герой', toggle('realHero'), 'Выключи — будет мультяшный герой с полным набором поз'),
       row('Усиление картинки', toggle('enhance', v => { BB.gl && BB.gl.enable(document.querySelector('#cv'), v); }), 'Сглаживание, резкость и контраст через WebGL (в духе DLSS/FSR, не настоящий DLSS)'),
       row('Громкость голоса', slider('voiceVol')),
@@ -591,7 +592,8 @@
       row('Субтитры звуков', toggle('subs'), 'Подписи вроде «[звонит телефон]»'),
       row('Сенсорное управление', toggle('touch', v => setTouch(v)), 'Всегда показывать стик и кнопки'),
       row('Показать отладку', toggle('debug', v => { if (BB.debug) BB.debug.on = v; }), 'То же, что F3'),
-      row('Эффекты давления', toggle('dread'), 'Красная виньетка и дрожь, когда хозяин близко')
+      row('Эффекты давления', toggle('dread'), 'Красная виньетка и дрожь, когда хозяин близко'),
+      row('Векторная модель героя', toggle('vectorHero'), 'Эксперимент: нарисованное тело вместо реалистичных спрайтов')
     );
     const qrow = h('div', { class: 'set qual' }), qb = h('span', { class: 'seg', role: 'radiogroup', 'aria-label': 'Качество графики' });
     [['auto', 'Авто'], ['low', 'Низкое'], ['med', 'Среднее'], ['high', 'Высокое']].forEach(q => {
