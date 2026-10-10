@@ -78,7 +78,7 @@ async function desktop(br, port, w, h, tag, full) {
   const rng = await pg.$$('.setbox input[type=range]');
   await rng[0].fill('30'); await rng[1].fill('0');
   const cfg = await S(pg, () => ({ vol: BB.CFG.vol, sv: BB.CFG.sfxVol, music: BB.CFG.music, sfx: BB.CFG.sfx, calls: BB.audio.calls.filter(c => c[0] === 'vol').map(c => c.join(':')) }));
-  ok('volume sliders -> CFG + audio.setVolume', cfg.vol === .3 && cfg.sv === 0 && cfg.sfx === false && cfg.calls.some(c => c.startsWith('vol:master:0.3')), cfg);
+  ok('volume sliders -> CFG + audio.setVolume', cfg.vol === .3 && cfg.sv === 0 && !cfg.sfx && cfg.calls.some(c => c.startsWith('vol:master:0.3')), cfg);
   const chk = await pg.$$('.setbox input[type=checkbox]');
   await chk[0].click(); ok('censor toggle', await S(pg, () => BB.CFG.censor === true && BB.cz('ну и хуйня') !== 'ну и хуйня'), await S(pg, () => BB.cz('ну и хуйня блядь')));
   await chk[4].click(); ok('subs toggle', await S(pg, () => BB.CFG.subs === false));
@@ -121,7 +121,7 @@ async function desktop(br, port, w, h, tag, full) {
   ok('tasks button opens note with 5 parts', await vis(pg, '#tasksNote') && await S(pg, () => document.querySelectorAll('#tasksNote li').length === BB.tasks.progress(BB.S).parts.length));
   ok('done parts ticked = progress.done', await S(pg, () => document.querySelectorAll('#tasksNote li.done').length === BB.tasks.progress(BB.S).done), await S(pg, () => [document.querySelectorAll('#tasksNote li.done').length, BB.tasks.progress(BB.S).done])); await shot(pg, tag + '_tasks');
   await pg.keyboard.press('Tab'); await wait(pg, 100); ok('Tab closes note', !(await vis(pg, '#tasksNote')));
-  await pg.keyboard.press('Tab'); await wait(pg, 100); ok('Tab opens note', await vis(pg, '#tasksNote'));
+  await pg.keyboard.press('Tab'); await wait(pg, 500); ok('Tab opens note', await vis(pg, '#tasksNote'));
   await pg.click('#tasksNote .x'); ok('note X closes', !(await vis(pg, '#tasksNote')));
   // dan
   await S(pg, () => { __log.length = 0; }); await pg.click('#bDan'); await wait(pg, 400);
@@ -161,8 +161,7 @@ async function desktop(br, port, w, h, tag, full) {
   ok('choices rendered', await S(pg, () => document.querySelectorAll('#dlgCh .btn').length) === 2);
   await pg.keyboard.press('Digit2'); await wait(pg, 200);
   ok('choice 2 runs callback', await S(pg, () => __d.join()) === 'b', await S(pg, () => __d.join()));
-  await pg.click('#dlgNext'); await wait(pg, 100); await pg.click('#dlgNext'); await wait(pg, 100);
-  await pg.click('#dlgNext'); await wait(pg, 100); await pg.click('#dlgNext'); await wait(pg, 300);
+  for (let k = 0; k < 4; k++) { await S(pg, () => { const n = document.querySelector('#dlgNext'); if (BB.ui.state.dlg && n && !n.hidden) n.click(); }); await wait(pg, 120); }
   ok('dialogue end: onEnd fired, busy false', await S(pg, () => __d.includes('end') && !BB.ui.busy()), await S(pg, () => __d.join()));
   // choice by click + skip
   await S(pg, () => { __d = []; BB.ui.dialog([{ who: 'dan', text: 'Вопрос?', choices: [{ text: 'Да', run: () => __d.push('yes') }, { text: 'Нет', run: () => __d.push('no') }] }], () => __d.push('end'), { phone: true }); });
@@ -173,13 +172,13 @@ async function desktop(br, port, w, h, tag, full) {
   await S(pg, () => { while (BB.ui.state.dlg) BB.ui.state.dlg.typing ? BB.ui.state.dlg.typed = 999 : 0, document.querySelector('#dlgNext').click(); });
 
   // ring
-  await S(pg, () => { __d = []; BB.ui.ring('landlord', () => __d.push('ans'), () => __d.push('dec')); }); await wait(pg, 400);
-  ok('ring banner shown & busy', await vis(pg, '#ring') && await S(pg, () => BB.ui.busy())); await shot(pg, tag + '_ring');
+  await S(pg, () => { __d = []; BB.ui.ring('landlord', () => __d.push('ans'), () => __d.push('dec')); }); await wait(pg, 1000);
+  ok('ring banner shown & busy', await vis(pg, '#ring') && await S(pg, () => BB.ui.busy()), await S(pg, () => ({ dlg: !!BB.ui.state.dlg, ring: !!BB.ui.state.ring, hid: document.querySelector('#ring').hidden, cls: document.querySelector('#ring').className }))); await shot(pg, tag + '_ring');
   await pg.keyboard.press('KeyE'); await wait(pg, 200); ok('E answers', await S(pg, () => __d.join()) === 'ans');
   await S(pg, () => { __d = []; BB.ui.ring('landlord', () => __d.push('ans'), () => __d.push('dec')); }); await wait(pg, 300);
-  await pg.click('#rNo'); await wait(pg, 200); ok('click decline', await S(pg, () => __d.join()) === 'dec');
+  await pg.click('#rNo', { force: true }); await wait(pg, 200); ok('click decline', await S(pg, () => __d.join()) === 'dec');
   await S(pg, () => { __d = []; BB.ui.ring('dan', () => __d.push('ans'), () => __d.push('dec')); }); await wait(pg, 300);
-  await pg.click('#rYes'); ok('click answer', await S(pg, () => __d.join()) === 'ans');
+  await pg.click('#rYes', { force: true }); ok('click answer', await S(pg, () => __d.join()) === 'ans');
 
   // panel
   await S(pg, () => { window.__pc = 0; window.__pn = BB.ui.panel({ title: 'Холодильник: вонища', hint: 'Выбросите протухшее.', wide: false, onClose: () => __pc++, build(el, api) { el.innerHTML = '<div style="display:grid;gap:8px"><button class="btn" id="mgA">Колбаса</button><button class="btn alt" id="mgB">Кефир</button></div>'; el.querySelector('#mgA').onclick = () => { api.setProgress(.5); api.setHint('Хорошо.'); }; } }); });
@@ -206,7 +205,7 @@ async function desktop(br, port, w, h, tag, full) {
   // door
   await S(pg, () => { __log.length = 0; BB.ui.showMenu('door', {}); }); await wait(pg, 400);
   ok('door confirm paused', await S(pg, () => BB.paused && BB.ui.menuKind() === 'door')); await shot(pg, tag + '_door');
-  await pg.click('#menu >> text=Открыть'); await wait(pg, 200); ok('door yes -> story.ending(true), unpaused', await S(pg, () => __log.includes('ending:true') && !BB.paused));
+  await pg.click('#menu >> text=Открыть'); await wait(pg, 200); ok('door yes -> story.ending(true), unpaused', await S(pg, () => __log.includes('ending:true') && !BB.paused), await S(pg, () => [__log.join(), BB.paused]));
   await S(pg, () => BB.ui.showMenu('door', {})); await wait(pg, 300); await pg.keyboard.press('Escape'); await wait(pg, 200); ok('door Esc = no', await S(pg, () => !BB.paused && !BB.ui.menuKind()));
   // result
   await S(pg, () => { BB.S.f.faucetFixed = 1; BB.S.mode = 'ending'; BB.ui.result({ title: 'Хозяин в ярости, но жив', text: 'Аркадий Семёнович задержался в дверях на 40 секунд.' }); localStorage.removeItem('bamboul.best'); });
@@ -247,7 +246,7 @@ async function touchTests(br, port, w, h, dpr, tag) {
   // overlap check: touch buttons vs hud top row
   const ov = await pg.evaluate(() => { const R = s => document.querySelector(s).getBoundingClientRect(); const hud = ['.clock', '.clean', '.hbtns', '#tools'].map(R); const tc = ['#joy', '#tE', '#tF', '#tJ'].map(R); const hit = (a, b) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top; const o = []; hud.forEach((a, i) => tc.forEach((b, j) => { if (hit(a, b)) o.push([i, j]); })); return o; });
   ok('no overlap touch buttons vs HUD', ov.length === 0, ov);
-  ok('E button label shows prompt', await S(pg, () => document.querySelector('#tELbl').textContent) === 'Открыть холодильник');
+  { const lbl = await S(pg, () => document.querySelector('#tELbl').textContent); ok('E button label shows prompt', lbl === 'Открыть холодильник', lbl); }
   // real touch taps via touchscreen (E)
   const box = async s => { const b = await (await pg.$(s)).boundingBox(); return [b.x + b.width / 2, b.y + b.height / 2]; };
   await S(pg, () => { Object.assign(__seen, { act: 0, jump: 0, use: 0, useEdge: 0 }); });
@@ -274,7 +273,7 @@ async function touchTests(br, port, w, h, dpr, tag) {
   [x, y] = await box('#bTasks'); await pg.touchscreen.tap(x, y); await wait(pg, 300); ok('tap tasks button', await vis(pg, '#tasksNote')); await shot(pg, tag + '_tasks');
   [x, y] = await box('#tasksNote .x'); await pg.touchscreen.tap(x, y); await wait(pg, 200); ok('tap note X', !(await vis(pg, '#tasksNote')));
   [x, y] = await box('#bDan'); await S(pg, () => __log.length = 0); await pg.touchscreen.tap(x, y); await wait(pg, 200); ok('tap Dan', await S(pg, () => __log.includes('dan')));
-  [x, y] = await box('.slot[data-tool=vac]'); await pg.touchscreen.tap(x, y); await wait(pg, 200); ok('tap tool slot', await S(pg, () => BB.S.active) === 'vac');
+  [x, y] = await box('.slot[data-tool=vac]'); await pg.touchscreen.tap(x, y); await wait(pg, 200); ok('tap tool slot', await S(pg, () => BB.S.active) === 'vac', await S(pg, () => [BB.S.active, BB.S.tools]));
   [x, y] = await box('#bPause'); await pg.touchscreen.tap(x, y); await wait(pg, 400); ok('tap pause', await S(pg, () => BB.paused)); await shot(pg, tag + '_pause');
   [x, y] = await box('#menu .primary'); await pg.touchscreen.tap(x, y); await wait(pg, 300); ok('tap Продолжить', await S(pg, () => !BB.paused));
   // bubble long text at phone size

@@ -81,7 +81,7 @@ const check = (name, ok, info) => { (ok ? pass++ : fail++); console.log((ok ? 'P
   check('threshold feedback produced (toast or ui)', await ev(() => !!document.querySelector('.toast') || BB.story.debug.R.toasts.length > 0));
 
   /* --------------------------------------------------------------- 4. calls */
-  await ev(() => { BB.ui && BB.ui.newGame(120); BB.timeScale = 1; const S = BB.S; S._st.introDone = 1; S.intro = 0; BB.player.force(null); BB.story.debug.R.lying = false; BB.story.debug.R.intro = null; S.time = 91; BB.story.debug.R.callGap = 0; });
+  await ev(() => { BB.ui && BB.ui.newGame(120); BB.timeScale = 1; const S = BB.S; S._st.introDone = 1; S.intro = 0; BB.player.force(null); BB.story.debug.R.lying = false; BB.story.debug.R.intro = null; S._st.reactive = 99; S.time = 91; BB.story.debug.R.callGap = 0; });
   await wait(300);
   await ev(() => { BB.S.time = 89.5; });
   const l1ok = await until(() => BB.story.ringing === 'l1', 4000);
