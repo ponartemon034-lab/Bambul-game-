@@ -295,11 +295,11 @@
     LP.bathBuzz = v => { const b = loopOsc(v, 'square', 100, 1, null); b.g.disconnect(); const bp = reg(v, C.createBiquadFilter()); bp.type = 'bandpass'; bp.frequency.value = 1200; bp.Q.value = 1.4; const g = reg(v, C.createGain()); g.gain.value = .12; b.g.connect(bp); bp.connect(g); g.connect(v.in); loopOsc(v, 'sine', 100, .06); loopOsc(v, 'sine', 200, .03); lfo(v, 7.3, .03, g.gain); };
     LP.workFans = v => { loopNoise(v, 'pink', 'bandpass', 400, .6, .4); const b = loopNoise(v, 'pink', 'bandpass', 900, .7, .15); lfo(v, .27, .08, b.g.gain); loopOsc(v, 'sine', 80, .1); const c = loopOsc(v, 'sine', 161, .05); lfo(v, .3, 1.5, c.s.frequency); };
     // room beds (auto-crossfaded by camera position)
-    LP.amb_hall = v => { const a = loopNoise(v, 'pink', 'lowpass', 280, .7, .5); lfo(v, .13, .18, a.g.gain); loopOsc(v, 'sine', 55, .08); const w = loopNoise(v, 'white', 'bandpass', 1100, 12, .05); lfo(v, .21, .03, w.g.gain); };
-    LP.amb_living = v => { LP.tv(v); loopNoise(v, 'brown', 'lowpass', 160, .7, .45); loopNoise(v, 'pink', 'bandpass', 700, .4, .05); };
-    LP.amb_kitchen = v => { LP.fridgeHum(v); loopNoise(v, 'pink', 'bandpass', 1500, .5, .03); };
-    LP.amb_bath = v => { LP.bathBuzz(v); loopNoise(v, 'pink', 'lowpass', 400, .6, .1); v.nextDrip = v.t + 1 + R() * 2; v.tick = now => { if (now > v.nextDrip) { play('drip', { vol: .7, bus: ambBus }); v.nextDrip = now + 2 + R() * 3.5; } }; };
-    LP.amb_work = v => { LP.workFans(v); loopNoise(v, 'white', 'highpass', 5000, .6, .01); };
+    LP.amb_hall = v => { const a = loopNoise(v, 'pink', 'lowpass', 280, .7, .5); lfo(v, .13, .18, a.g.gain); const w = loopNoise(v, 'white', 'bandpass', 1100, 12, .05); lfo(v, .21, .03, w.g.gain); };
+    LP.amb_living = v => { loopNoise(v, 'brown', 'lowpass', 160, .7, .45); loopNoise(v, 'pink', 'bandpass', 700, .4, .05); };
+    LP.amb_kitchen = v => { loopNoise(v, 'pink', 'bandpass', 1500, .5, .03); };
+    LP.amb_bath = v => { loopNoise(v, 'pink', 'lowpass', 400, .6, .1); v.nextDrip = v.t + 1 + R() * 2; v.tick = now => { if (now > v.nextDrip) { play('drip', { vol: .7, bus: ambBus }); v.nextDrip = now + 2 + R() * 3.5; } }; };
+    LP.amb_work = v => { loopNoise(v, 'white', 'highpass', 5000, .6, .01); };
 
     /* ======================================================= spatialisation */
     function roomIdAt(x) { const L = BB.LAYOUT; return L && L.roomOf ? L.roomOf(x).id : 'hall'; }

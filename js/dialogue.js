@@ -1566,7 +1566,7 @@
     const firstVisit = !visited[id];
     visited[id] = 1;
     if (S.mode !== 'play' || BB.paused || !(S.time > 0)) return;
-    if (firstVisit || rng() < 0.4) bark('roomEnter:' + id, { S, first: firstVisit, room: id });
+    if (firstVisit || rng() < 0.75) bark('roomEnter:' + id, { S, first: firstVisit, room: id });
   }
 
   function step(dt, S) {

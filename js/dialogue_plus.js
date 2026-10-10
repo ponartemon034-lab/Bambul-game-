@@ -171,7 +171,13 @@
     },
     done: [['Всё, блядь, закончил. Теперь хотя бы пять секунд никто не трогает.', 'relief']],
     left: [['Уехал? УЕХАЛ?! Всё, ребята, я снова свободный человек!', 'relief']],
-    move: [['Опять по этой хате, как по минному полю.', 'grumble'], ['Пять шагов туда, пять обратно. Вот и вся моя карьера.', 'tired'], ['Куда я вообще иду? А, ну да. Работать. Блядь.', 'tired'], ['Нахуй такой маршрут, лучше б я лежал.', 'grumble'], ['Ходи тут туда-сюда, как проклятый.', 'annoyed'], ['Да где она, эта хуйня, которая мне нужна?!', 'annoyed']]
+    move: [['Опять по этой хате, как по минному полю.', 'grumble'], ['Пять шагов туда, пять обратно. Вот и вся моя карьера.', 'tired'], ['Куда я вообще иду? А, ну да. Работать. Блядь.', 'tired'], ['Нахуй такой маршрут, лучше б я лежал.', 'grumble'], ['Ходи тут туда-сюда, как проклятый.', 'annoyed'], ['Да где она, эта хуйня, которая мне нужна?!', 'annoyed'],
+      ['Блядь, ну и срач. Хозяин увидит — у него случится инфаркт.', 'annoyed'], ['Иду, иду, сука, не гоните.', 'grumble'], ['Квартира два на два, а ходить как по марафону. Охуеть.', 'tired'], ['Ёбаный в рот, куда я это положил?', 'annoyed'],
+      ['Так, спокойно. Это просто уборка. Нет, блядь, это пиздец.', 'tired'], ['Если я тут найду ещё один носок, я его усыновлю.', 'grumble'], ['Мать моя женщина, тут как после взрыва.', 'annoyed'], ['Блин, ну вот зачем я вчера не прибрался? А, потому что я долбоёб.', 'grumble'],
+      ['Ноги гудят, а я ещё ничего не сделал. Гениально.', 'tired'], ['Хозяин сейчас приедет, а у меня тут хлев, как в деревне.', 'annoyed'], ['Хуле я стою? Надо идти. Хотя нет, ещё постою.', 'grumble'], ['Что за хрень на полу? Не, не хочу знать.', 'annoyed'],
+      ['Сука, ну кто так строит квартиры? Одни углы.', 'annoyed'], ['Давай, Бамбуль, ты же мужик. Ну, по паспорту точно.', 'tired'], ['Пиздец, как я ненавижу этот день.', 'angry'], ['Если я не успею, я просто переименуюсь и съеду.', 'grumble'],
+      ['Я не ленивый, я стратегически медленный, блядь.', 'grumble'], ['О, нашёл дорогу. Следующий квест — найти смысл жизни.', 'tired'], ['Опять этот коридор. Я тут уже как в сериале про день сурка.', 'tired'], ['Да что ж такое-то, нахуй! Ладно, пошли дальше.', 'annoyed'],
+      ['Чую, пахнет жареным. Или это из холодильника. Да чёрт его знает.', 'annoyed'], ['Блядь, где моя мотивация? Кто-нибудь видел мою мотивацию?', 'tired'], ['Ебать, сколько ещё всего убирать!', 'annoyed'], ['Тише, Бамбуль. Дыши. Только не кричи, соседи услышат.', 'tired']]
   };
   // ---- pools (weights make the authored 60 lines come up often) ----
   add('owner:comes', L.owner, 3); add('owner:left', L.left, 3); add('allDone', L.done, 3);
@@ -185,7 +191,7 @@
   Object.assign(dlg.EMO_CAT = {}, { 'idle': 'tired', 'tired': 'tired', 'wait': 'tired', 'move': 'grumble', 'fail': 'angry', 'oops': 'angry', 'spam': 'annoyed', 'time:300': 'annoyed', 'time:120': 'angry', 'time:60': 'panic', 'time:30': 'panic', 'time:10': 'panic', 'success': 'relief', 'allDone': 'relief',
     'owner:left': 'relief', 'owner:comes': 'annoyed', 'boom': 'surprise', 'jump': 'surprise', 'land': 'grumble', 'faucet:open': 'angry', 'faucet:wrong': 'angry', 'vac:snag': 'angry', 'fridge:disgust': 'surprise', 'fridge:open': 'surprise', 'toilet:flush': 'relief', 'faucet:done': 'relief', 'mop:done': 'relief', 'vac:done': 'relief', 'toilet:done': 'relief', 'printer:success': 'relief', 'cleanLow': 'annoyed' });
 
-  Object.assign(dlg._META, { 'owner:comes': { prio: 6, cd: 6 }, 'owner:left': { prio: 6, cd: 0 }, 'allDone': { prio: 5, cd: 0 }, 'tired': { prio: 1, cd: 35 }, 'wait': { prio: 1, cd: 30 }, 'move': { prio: 1, cd: 35 }, 'chore:avoid': { prio: 2, cd: 12 }, 'oops': { prio: 3, cd: 10 },
+  Object.assign(dlg._META, { 'owner:comes': { prio: 6, cd: 6 }, 'owner:left': { prio: 6, cd: 0 }, 'allDone': { prio: 5, cd: 0 }, 'tired': { prio: 1, cd: 35 }, 'wait': { prio: 1, cd: 30 }, 'move': { prio: 1, cd: 12 }, 'chore:avoid': { prio: 2, cd: 12 }, 'oops': { prio: 3, cd: 10 },
     'laundry:pick': { prio: 2, cd: 6 }, 'laundry:load': { prio: 2, cd: 6 }, 'laundry:start': { prio: 3, cd: 6 }, 'laundry:wait': { prio: 1, cd: 14 }, 'laundry:noise': { prio: 1, cd: 14 } });
   /* ------------------------------------------------------------ event router */
   // gameplay modules bark with coarse categories; map them (plus their context) onto the real pools
@@ -223,12 +229,13 @@
 
   /* ------------------------------------------------------ passive event hooks */
   const T = { walk: 0, tiredAt: 0, waitAt: 0, lastAct: 0, washOn: 0, washBark: 0, last: { x: 0 } };
+  dlg._T = T;
   BB.hooks.update.push(function (dt, S, t) {
     if (!S || S.mode !== 'play' || BB.paused) return; const P = BB.P; if (!P) return;
     const busy = BB.ui && BB.ui.busy && BB.ui.busy();
     // long walks -> short mumbling
     const dx = Math.abs(P.x - T.last.x); T.last.x = P.x; if (dx < 40) T.walk += dx;
-    if (T.walk > 1100 && !busy) { T.walk = 0; dlg.bark('move', { S }); }
+    if (T.walk > 420 && !busy) { T.walk = 0; dlg.bark('move', { S }); }
     // waiting / doing nothing
     const still = !P.act && Math.abs(P.vx) < 5 && !busy; T.waitAt = still ? T.waitAt + dt : 0;
     if (T.waitAt > 26) { T.waitAt = 0; dlg.bark(rnd() < .55 ? 'wait' : 'tired', { S }); }

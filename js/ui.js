@@ -760,12 +760,13 @@
       const key = cur.prompt + '|' + st.touch + '|' + useHint;
       if (key !== st.promptKey) {
         st.promptKey = key;
-        pill.innerHTML = '<span class="cap">' + (st.touch ? ic('tap') : 'E') + '</span><span class="tx"></span>' + (useHint ? '<span class="hold"><kbd>' + (st.touch ? 'держи' : 'F') + '</kbd>' + (st.touch ? '' : ' убирать') + '</span>' : '');
-        $('.tx', pill).textContent = cz(cur.prompt); st.pillW = pill.offsetWidth; st.pillH = pill.offsetHeight;
+        pill.classList.toggle('mini', !!st.touch);                     // phones: just a small marker over the object, the text lives on the action button
+        pill.innerHTML = st.touch ? '<span class="cap">' + ic('tap') + '</span>' : '<span class="cap">E</span><span class="tx"></span>' + (useHint ? '<span class="hold"><kbd>F</kbd> убирать</span>' : '');
+        const tx = $('.tx', pill); if (tx) tx.textContent = cz(cur.prompt); st.pillW = pill.offsetWidth; st.pillH = pill.offsetHeight;
       }
       pillOn = true; px = BB.sx(cur.ax, 0) * k; py = BB.sy((cur.hot.h || 100) + 12, 0) * k;
     } else if (useHint) {
-      const key = 'hold|' + st.touch; if (key !== st.promptKey) { st.promptKey = key; pill.innerHTML = '<span class="hold only"><kbd>' + (st.touch ? 'держи' : 'F') + '</kbd> убирать</span>'; st.pillW = pill.offsetWidth; st.pillH = pill.offsetHeight; }
+      const key = 'hold|' + st.touch; if (key !== st.promptKey) { st.promptKey = key; pill.classList.remove('mini'); pill.innerHTML = '<span class="hold only"><kbd>' + (st.touch ? 'держи' : 'F') + '</kbd> убирать</span>'; st.pillW = pill.offsetWidth; st.pillH = pill.offsetHeight; }
       pillOn = true; px = BB.sx(P.x, 0) * k; py = BB.sy(P.y + 60, 0) * k;
     } else st.promptKey = '';
     if (pillOn) {
@@ -776,7 +777,7 @@
     pill.classList.toggle('on', pillOn);
     // touch E label
     if (st.touch) {
-      const lbl = $('#tELbl'), tx = can && cur && cur.prompt ? cz(cur.prompt) : 'действие';
+      const lbl = $('#tELbl'), tx = can && cur && cur.prompt ? cz(cur.prompt).replace(/\s*[(\[].*$/, '').replace(/^(Подобрать|Взять)[:\s]+/i, '$1 ').trim().slice(0, 28) : 'действие';
       if (lbl.textContent !== tx) lbl.textContent = tx;
       $('#tE').classList.toggle('idle', !(cur && cur.hot)); $('#tF').classList.toggle('idle', !S.hintUse);
     }
