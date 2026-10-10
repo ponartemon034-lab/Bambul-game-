@@ -53,10 +53,11 @@ const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css
     },
     vacJam: async () => { await clickTarget('cable'); await clickTarget('sock'); await winBtn(); }
   };
-  for (const id of Object.keys(plan)) { if (process.env.ONLY && process.env.ONLY !== id) continue;
-    await begin(id); ok(await ev(() => !!BB.mini._R), id + ' opens'); await shot(id + '_1');
+  for (const id of Object.keys(plan)) { if (process.env.ONLY && !process.env.ONLY.split(',').includes(id)) continue;
+    const t0 = Date.now(); await begin(id); ok(await ev(() => !!BB.mini._R), id + ' opens'); await shot(id + '_1');
     try { await plan[id](); } catch (e) { ok(false, id + ' exception ' + e.message); }
     await wait(500); const res = await ev(() => window.__res); await shot(id + '_end');
+    console.log('   [' + id + ' took ' + ((Date.now() - t0) / 1000).toFixed(0) + 's, frame ' + (await ev(() => BB.frameStats && BB.frameStats.drawn)) + ' drawn, hooks ' + (await ev(() => BB.hooks.update.length)) + ', fx ' + (await ev(() => BB.fx._count())) + ']');
     ok(res && res.win, id + ' wins (res=' + JSON.stringify(res && { win: res.win, time: res.timeCost }) + ')');
     if (await ev(() => !!BB.mini._R)) await ev(() => BB.mini.abort());
   }
