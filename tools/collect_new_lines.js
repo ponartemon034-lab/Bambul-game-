@@ -31,8 +31,9 @@ srv.listen(0, async () => {
     BB.dlg._unseed();
     return [...res.values()];
   });
-  const miss = all.filter(x => !man[x.key]).map(({ key, ...r }) => r);
-  const out = process.argv[2] || '/tmp/lines_new.json'; fs.writeFileSync(out, JSON.stringify(miss));
+  const every = process.argv.includes('--all');
+  const miss = all.filter(x => every || !man[x.key]).map(({ key, ...r }) => r);
+  const out = process.argv.slice(2).find(a => !a.startsWith('--')) || '/tmp/lines_new.json'; fs.writeFileSync(out, JSON.stringify(miss));
   console.log('pool lines', all.length, 'missing clips', miss.length, '->', out);
   await br.close(); srv.close();
 });

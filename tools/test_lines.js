@@ -22,6 +22,16 @@ srv.listen(0, async () => {
   });
   ok('situations use only the authored lines', amb.bad.length === 0 && amb.empty.length === 0, amb);
   ok('walking pool has only authored lines (+ gated despair)', amb.walk.length === 0, amb.walk);
+  // 1b. profanity everywhere, nothing about a job / pension / career / salary / holidays
+  const tone = await pg.evaluate(() => {
+    const MAT = /(^|[^а-яё])(бля|хуй|хуё|хуе|хуя|хуи|нахуй|похуй|нихуя|нехуй|охуе|охуит|пизд|ёб|еб[аеиёуо]|заеб|наеб|ебан|сука|суки|сучь|мудак|мудил|мраз|пидор|пидар|залуп|говн|дерьм|жоп|насрал|хер|ебен|ебал)|(вы|за|на|по|раз|с)ёб|ебат|выеб|ебан|мразь|хуесос/i;
+    const BAD = /пенси|работ(?!ает|ал|ы на дор)|карьер|зарплат|отпуск|уволи|рабоч|начальн|смена|офис/i;
+    let total = 0, mat = 0; const nomat = [], bad = [];
+    for (const cat in BB.dlg._POOL) { if (BB.dlg._meta(cat).who !== 'bamboul') continue; for (const e of BB.dlg._POOL[cat]) { if (typeof e.t !== 'string') continue; total++; if (MAT.test(e.t)) mat++; else nomat.push(cat + ': ' + e.t.slice(0, 50)); if (BAD.test(e.t)) bad.push(cat + ': ' + e.t.slice(0, 50)); } }
+    return { total, mat, share: +(mat / total).toFixed(3), nomat: nomat.slice(0, 5), bad: bad.slice(0, 5) };
+  });
+  ok('Bamboul lines: at least 97% contain profanity', tone.share >= .97, tone);
+  ok('no lines about work, pension, career, salary, holidays', tone.bad.length === 0, tone.bad);
   // 2. situations: the right group for the right event
   const ctx = await pg.evaluate(() => {
     const has = (cat, ...grps) => { const g = [].concat(...grps.map(x => BB.dlg.USER[x].map(r => r[0]))); return BB.dlg._POOL[cat].every(e => g.indexOf(e.t) >= 0); };

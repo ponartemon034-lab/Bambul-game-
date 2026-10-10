@@ -1,5 +1,14 @@
 # Voice system (Bamboul, landlord, Dan)
 
+> **v3 (current): Coqui XTTS-v2.** The clips are generated with XTTS-v2 (multilingual GPT-style model, Russian) instead of Silero v4: noticeably more natural intonation and breathing, real speech rhythm for swearing and shouting. Every clip is transcribed back with Whisper and compared with the text; unintelligible takes are re-rolled (up to 3 tries). Voices: Bamboul = `Baldur Sanjin`, landlord = `Damien Black`, Dan = `Andrew Chipper` (XTTS built-in speakers); the speaking speed follows the emotion tag (tired 0.93 ... panic 1.14). Output: loudness-normalised mp3, 24 kHz, 40 kbps in `assets/voice/<who>/<hash>.mp3`.
+>
+> Pipeline: `node tools/collect_new_lines.js lines.json --all` (dumps every spoken line) -> `COQUI_TOS_AGREED=1 python tools/gen_voice_xtts.py lines.json [workdir]` (resumable, merges into `assets/voice/manifest.json`). Needs `torch` (CPU is fine, ~10 s per line), `coqui-tts`, `transformers<4.58`, `torchcodec`, `faster-whisper`, ffmpeg.
+>
+> **Licence:** the XTTS-v2 weights are under the Coqui Public Model License (non-commercial use). For a commercial release replace them (own voice actor recordings, or a permissively licensed voice) - the game only needs `assets/voice/manifest.json` + the mp3 files.
+>
+> Silero v4 (below) is kept as the older pipeline (`tools/gen_voice_silero.py`, `tools/gen_voice.py`); clips for lines that were not regenerated stay as they were.
+
+
 **Model:** Silero TTS v4 (Russian), offline, CPU. Speakers: `eugene` (Bamboul), `aidar` (Dan, landlord). Pitch is kept in the medium male range (median F0: Bamboul ~115 Hz, Dan ~129 Hz, landlord ~136 Hz, measured with tools/f0.py). Background music is disabled in the game. Piper (`tools/gen_voice.py`) is kept as an alternative generator.
 
 **Pipeline (all pre-generated, nothing is synthesized at runtime):**
