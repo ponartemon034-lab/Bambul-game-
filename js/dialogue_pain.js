@@ -19,6 +19,10 @@
   for (const id in D.room) add('pain:room:' + id, D.room[id]);
   for (const id in D.chaos) add('chaos:' + id, D.chaos[id]);
 
+  /* the old 'move' mutters (35 lines, already voiced) now live inside the phase pools, so none of the authored text is lost */
+  { const legacy = (dlg._POOL.move || []).filter(e => typeof e.t === 'string'); const have = new Set(); for (const k of ['pain:walk:early', 'pain:walk:mid']) (dlg._POOL[k] || []).forEach(e => have.add(e.t));
+    for (const k of ['pain:walk:early', 'pain:walk:mid']) dlg.add(k, legacy.filter(e => !(dlg._POOL[k] || []).some(x => x.t === e.t)).map(e => ({ t: e.t, w: 1 }))); }
+
   /* ---- additions to the existing pools (same ids the gameplay already barks with) ---- */
   add('pickup', D.pickup); add('toss', D.toss);
   add('vac:start', D.vacuum.slice(0, 6)); add('vac:run', D.vacuum.slice(6)); add('mop:start', D.mop.slice(0, 6)); add('mop:run', D.mop.slice(6));
